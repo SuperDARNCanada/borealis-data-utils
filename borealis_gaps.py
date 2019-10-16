@@ -106,7 +106,7 @@ def get_record_timestamps(filename, record_dict, file_structure='site'):
         be array structured. Determines how to retrieve the timestamps
         of the records.
     """
-    print('Checking for gaps in : ' + filename)
+    print('Getting timestamps from file : ' + filename)
     if os.path.basename(filename).split('.')[-1] in ['bz2', 'bzip2']:
         borealis_hdf5_file = decompress_bz2(filename)
         bzip2 = True
@@ -324,7 +324,10 @@ if __name__ == '__main__':
     for one_day in daterange(start_day, end_day):
         # Get all the filenames and then all the timestamps for this day.
         print(one_day.strftime("%Y%m%d"))
-        files = glob.glob(data_dir + one_day.strftime("%Y%m%d") + '/*.' + filetype + '*')
+        if os.path.isdir(data_dir + one_day.strftime("%Y%m%d")):
+            files = glob.glob(data_dir + one_day.strftime("%Y%m%d") + '/*.' + filetype + '*')
+        else:
+            continue
 
         jobs = []
         files_left = True
