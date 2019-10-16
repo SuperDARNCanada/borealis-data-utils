@@ -1,6 +1,16 @@
 # Copyright 2019 SuperDARN Canada, University of Saskatchewan
 # Author: Marci Detwiller
 
+"""
+This script is used to find gaps in Borealis data files.
+
+Future Work
+-----------
+Update to use pydarn BorealisRead for getting the records.
+
+"""
+
+
 import sys
 import os
 import math
