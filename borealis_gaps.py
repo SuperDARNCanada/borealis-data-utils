@@ -188,10 +188,10 @@ def check_for_gaps_between_records(timestamp_list, gap_spacing):
             continue
         this_record = datetime.datetime.utcfromtimestamp(float(record)/1000)
         expected_next_record = this_record + datetime.timedelta(seconds=float(gap_spacing))
-        if datetime.datetime.utcfromtimestamp(float(records[record_num + 1])/1000) > expected_next_record:
+        if datetime.datetime.utcfromtimestamp(float(sorted_list[record_num + 1])/1000) > expected_next_record:
             # append the gap to the dictionary list where key = filename,
             # value = list of gaps. Gaps are lists of (gap_start, gap_end)
-            gaps_list = gaps_list + [(record, records[record_num + 1])]
+            gaps_list = gaps_list + [(record, sorted_list[record_num + 1])]
 
     return gaps_list
 
@@ -259,6 +259,7 @@ def print_gaps(gaps_dict):
     """
 
     strf_format = '%Y%m%d %H:%M:%S'
+    day_format = '%Y%m%d'
 
     print('| DAY | GAP TIME | DURATION |')
     print('| --- | --- | --- |')
@@ -270,12 +271,12 @@ def print_gaps(gaps_dict):
                 gap_end_time = datetime.datetime.utcfromtimestamp(float(gap_end)/1000)
                 gap_duration = gap_end_time - gap_start_time
                 duration = gap_duration.total_seconds()
-                duration_min = duration/60.0
-                print('| ' + day + ' | ' + gap_start_time.strftime(strf_format) + ' - ' +
+                duration_min = round(duration/60.0, 1)
+                print('| ' + day.strftime(day_format) + ' | ' + gap_start_time.strftime(strf_format) + ' - ' +
                       gap_end_time.strftime(strf_format) + ' | ' + str(duration) + 
                       ' s, (' + str(duration_min) + ' min) |')
         else:
-            print('| ' + day + ' | NONE |   |')
+            print('| ' + day.strftime(day_format) + ' | NONE |   |')
 
 
 if __name__ == '__main__':
@@ -363,9 +364,9 @@ if __name__ == '__main__':
     sorted_days = sorted(timestamps_dict.keys())
 
     # first timestamp is first day's first timestamp
-    first_timestamp = datetime.datetime.utcfromtimestamp(float(sorted(timestamps_dict[sorted_days[0]])[0]/1000))
+    first_timestamp = datetime.datetime.utcfromtimestamp(float(sorted(timestamps_dict[sorted_days[0]])[0])/1000)
     # last timestamp is last day's last timestamp
-    last_timestamp = datetime.datetime.utcfromtimestamp(float(sorted(timestamps_dict[sorted_days[-1]])[-1]/1000))
+    last_timestamp = datetime.datetime.utcfromtimestamp(float(sorted(timestamps_dict[sorted_days[-1]])[-1])/1000)
     print('GAPS BETWEEN {} and {} found:'.format(first_timestamp, last_timestamp))
     print_gaps(gaps_dict)
 
