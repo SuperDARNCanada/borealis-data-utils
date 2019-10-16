@@ -106,7 +106,7 @@ def get_record_timestamps(filename, record_dict, file_structure='site'):
         be array structured. Determines how to retrieve the timestamps
         of the records.
     """
-    print('Checking for gaps in : ' + rawacf_file)
+    print('Checking for gaps in : ' + filename)
     if os.path.basename(filename).split('.')[-1] in ['bz2', 'bzip2']:
         borealis_hdf5_file = decompress_bz2(filename)
         bzip2 = True
