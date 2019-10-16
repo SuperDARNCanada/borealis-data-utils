@@ -49,6 +49,8 @@ def borealis_gaps_parser():
                                               " for, in seconds. Default 7s.")
     parser.add_argument("--num_processes", help="The number of processes to use in the multiprocessing,"
                                                 " default 4.")
+    parser.add_argument("--file_structure", help="The file structure to use when reading the files, "
+                                                " default 'site' but can also be 'array'")
     return parser
 
 
@@ -259,7 +261,9 @@ def print_gaps(gaps_dict):
                 gap_duration = gap_end_time - gap_start_time
                 duration = gap_duration.total_seconds()
                 duration_min = duration/60.0
-                print('| ' + day + ' | ' + gap_start_time.strftime(strf_format) + ' - ' + gap_end_time.strftime(strf_format) + ' | ' + str(duration) + ' s, (' + str(duration_min) + ' min) |')
+                print('| ' + day + ' | ' + gap_start_time.strftime(strf_format) + ' - ' +
+                      gap_end_time.strftime(strf_format) + ' | ' + str(duration) + 
+                      ' s, (' + str(duration_min) + ' min) |')
         else:
             print('| ' + day + ' | NONE |   |')
 
@@ -283,6 +287,11 @@ if __name__ == '__main__':
     else:
         num_processes = args.num_processes
 
+    if args.file_structure is None:
+        file_structure = 'site'
+    else:
+        file_structure = args.file_structure
+
     files = []
     
     data_dir = args.data_dir
@@ -304,7 +313,7 @@ if __name__ == '__main__':
     for one_day in daterange(start_day, end_day):
         # Get all the filenames and then all the timestamps for this day.
         print(one_day.strftime("%Y%m%d"))
-        files = glob.glob(data_dir + one_day.strftime("%Y%m%d") + '/*.' + filetype + '.hdf5.site.bz2')
+        files = glob.glob(data_dir + one_day.strftime("%Y%m%d") + '/*.' + filetype + '*')
 
         jobs = []
         files_left = True
@@ -323,7 +332,7 @@ if __name__ == '__main__':
                         raise
                     files_left = False
                     break
-                p = Process(target=get_record_timestamps, args=(filename, filename_dict))
+                p = Process(target=get_record_timestamps, args=(filename, filename_dict, file_structure))
                 #p = Process(target=check_for_gaps_in_file, args=(filename, gap_spacing, gaps_dict, file_duration_dict))
                 jobs.append(p)
                 p.start()
