@@ -4,6 +4,14 @@
 """
 This script is used to find gaps in Borealis data files.
 
+This script should be piped to a file gaps.md or similar.
+
+This script generates text in a markdown table format. The following
+command line call can be used to generate a docx table from 
+the printed output:
+
+pandoc -o output_file.docx -f markdown -t docx input_file.md
+
 Future Work
 -----------
 Update to use pydarn BorealisRead for getting the records.
@@ -259,10 +267,12 @@ def print_gaps(gaps_dict):
     """
 
     strf_format = '%Y%m%d %H:%M:%S'
-    day_format = '%Y%m%d'
 
-    print('| DAY | GAP TIME | DURATION |')
-    print('| --- | --- | --- |')
+    # need to print a new line at start of file otherwise markdown 
+    # table won't generate.
+    print(' ')
+    print('| START TIME | END TIME | DURATION (min) | CAUSE |')
+    print('| --- | --- | --- | --- |')
     for day in sorted(gaps_dict.keys()):
         gaps = gaps_dict[day]
         if gaps:  # not empty
@@ -272,11 +282,9 @@ def print_gaps(gaps_dict):
                 gap_duration = gap_end_time - gap_start_time
                 duration = gap_duration.total_seconds()
                 duration_min = round(duration/60.0, 1)
-                print('| ' + day.strftime(day_format) + ' | ' + gap_start_time.strftime(strf_format) + ' - ' +
-                      gap_end_time.strftime(strf_format) + ' | ' + str(duration) + 
-                      ' s, (' + str(duration_min) + ' min) |')
-        else:
-            print('| ' + day.strftime(day_format) + ' | NONE |   |')
+                print('| ' + gap_start_time.strftime(strf_format) + ' | '  +
+                      gap_end_time.strftime(strf_format) + ' | ' + 
+                      str(duration_min) + ' |   |')
 
 
 if __name__ == '__main__':
@@ -370,6 +378,6 @@ if __name__ == '__main__':
     first_timestamp = datetime.datetime.utcfromtimestamp(float(sorted(timestamps_dict[sorted_days[0]])[0])/1000)
     # last timestamp is last day's last timestamp
     last_timestamp = datetime.datetime.utcfromtimestamp(float(sorted(timestamps_dict[sorted_days[-1]])[-1])/1000)
-    print('GAPS BETWEEN {} and {} found:'.format(first_timestamp, last_timestamp))
+    print('GAPS BETWEEN {} and {} found:'.format(first_timestamp.strftime('%Y%m%d %H:%M:%S'), last_timestamp.strftime('%Y%m%d %H:%M:%S')))
     print_gaps(gaps_dict)
 
