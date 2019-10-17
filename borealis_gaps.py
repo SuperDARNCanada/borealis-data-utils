@@ -240,8 +240,6 @@ def check_for_gaps_between_days(timestamps_dict, gap_spacing, gaps_dict):
             # append gap to this day's list of gaps. Dict key is day, list is list of (gap_start, gap_end)
             if day not in gaps_dict.keys():
                 gaps_dict[day] = []
-                print('Adding to dict') 
-            #print(new_dict[filename])
             gaps_dict[day] = [(previous_last_record, first_record)] + gaps_dict[day]
         previous_last_record = last_record
     return gaps_dict
@@ -255,7 +253,7 @@ def daterange(start_date, end_date):
         yield start_date + datetime.timedelta(n)
 
 
-def print_gaps(gaps_dict):
+def print_gaps(gaps_dict, first_timestamp, last_timestamp):
     """
     Printer function for a dictionary of gaps. Prints a markdown
     table for easy integration into documents.
@@ -264,6 +262,10 @@ def print_gaps(gaps_dict):
     ----------
     gaps_dict
         Dictionary of day: list of gaps to be printed to stdout
+    first_timestamp
+        datetime of first timestamp in period of gaps
+    last_timestamp
+        datetime of last timestamp in period of gaps
     """
 
     strf_format = '%Y%m%d %H:%M:%S'
@@ -272,7 +274,9 @@ def print_gaps(gaps_dict):
     # table won't generate.
     print(' ')
     print('| START TIME | END TIME | DURATION (min) | CAUSE |')
-    print('| --- | --- | --- | --- |')
+    print('| --- | --- | ---:| --- |')
+
+    duration_dict = {}
     for day in sorted(gaps_dict.keys()):
         gaps = gaps_dict[day]
         if gaps:  # not empty
@@ -285,6 +289,19 @@ def print_gaps(gaps_dict):
                 print('| ' + gap_start_time.strftime(strf_format) + ' | '  +
                       gap_end_time.strftime(strf_format) + ' | ' + 
                       str(duration_min) + ' |   |')
+                duration_dict{day} = duration_min
+
+    # end table, print new line
+    print(' ')
+    total_duration_min = 0.0
+    for day, duration in duration_dict.items():
+        total_duration_min += duration
+    total_duration_hrs = round(total_duration_min/60.0, 1)
+    total_duration_days = round(total_duration_hrs/24.0, 1)
+    print('TOTAL DOWNTIME DURATION IN PERIOD from {} to {}: '.format(first_timestamp.strftime(strf_format), last_timestamp.strftime(strf_format)))
+    print('{} minutes'.format(total_duration_min))
+    print('{} hours'.format(total_duration_hrs))
+    print('{} days'.format(total_duration_days))
 
 
 if __name__ == '__main__':
@@ -378,6 +395,6 @@ if __name__ == '__main__':
     first_timestamp = datetime.datetime.utcfromtimestamp(float(sorted(timestamps_dict[sorted_days[0]])[0])/1000)
     # last timestamp is last day's last timestamp
     last_timestamp = datetime.datetime.utcfromtimestamp(float(sorted(timestamps_dict[sorted_days[-1]])[-1])/1000)
-    print('GAPS BETWEEN {} and {} found:'.format(first_timestamp.strftime('%Y%m%d %H:%M:%S'), last_timestamp.strftime('%Y%m%d %H:%M:%S')))
-    print_gaps(gaps_dict)
+    print('GAPS BETWEEN {} and {}:'.format(first_timestamp.strftime('%Y%m%d %H:%M:%S'), last_timestamp.strftime('%Y%m%d %H:%M:%S')))
+    print_gaps(gaps_dict, first_timestamp, last_timestamp)
 
