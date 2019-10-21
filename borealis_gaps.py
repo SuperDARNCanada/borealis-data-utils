@@ -289,7 +289,7 @@ def print_gaps(gaps_dict, first_timestamp, last_timestamp):
                 print('| ' + gap_start_time.strftime(strf_format) + ' | '  +
                       gap_end_time.strftime(strf_format) + ' | ' + 
                       str(duration_min) + ' |   |')
-                duration_dict{day} = duration_min
+                duration_dict[day] = duration_min
 
     # end table, print new line
     print(' ')
