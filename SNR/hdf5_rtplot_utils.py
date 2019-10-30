@@ -16,8 +16,8 @@ for testing.
 from pydarn import BorealisRead, BorealisWrite
 
 def plot_antennas_range_time(antennas_iq_file, borealis_file_structure,
-							 antenna_num, vmax=80.0, vmin=10.0, 
-							 start_sample=0, end_sample=70):
+                             antenna_num, vmax=80.0, vmin=10.0, 
+                             start_sample=0, end_sample=70):
     """ 
     Plots unaveraged range time data from echoes received in every sequence
     for a single antenna.
@@ -29,33 +29,33 @@ def plot_antennas_range_time(antennas_iq_file, borealis_file_structure,
     Parameters 
     ----------
     antennas_iq_file
-    	The file to read and plot data from. All sequence from the file will
-    	have some data plotted. 
+        The file to read and plot data from. All sequence from the file will
+        have some data plotted. 
     borealis_file_structure
-    	Structure of the antennas_iq_file. 'site' or 'array'. 
+        Structure of the antennas_iq_file. 'site' or 'array'. 
     antenna_num
-    	The antenna that you want to plot. Used to index into the data array, 
-    	which is organized main antennas first consecutively, followed by 
-    	interferometer antennas consecutively. 
+        The antenna that you want to plot. Used to index into the data array, 
+        which is organized main antennas first consecutively, followed by 
+        interferometer antennas consecutively. 
     vmax
-    	Max power for the color bar on the plot. 
+        Max power for the color bar on the plot. 
     vmin
-    	Min power for the color bar on the plot. 
-	start_sample
-		The sample to start plotting at. Default 0th range (first sample).
-	end_sample
-		The last sample in the sequence to plot. Default 70 so ranges 0-69
-		will plot.
-	""" 
-	print(antennas_iq_file, antenna_num)
+        Min power for the color bar on the plot. 
+    start_sample
+        The sample to start plotting at. Default 0th range (first sample).
+    end_sample
+        The last sample in the sequence to plot. Default 70 so ranges 0-69
+        will plot.
+    """ 
+    print(antennas_iq_file, antenna_num)
 
     reader = BorealisRead(antennas_iq_file, 'antennas_iq', 
-    					  borealis_file_structure=borealis_file_structure)
+                          borealis_file_structure=borealis_file_structure)
 
     arrays = reader.arrays
 
     (num_records, num_antennas, max_num_sequences, num_samps) = \
-    	arrays['data'].shape
+        arrays['data'].shape
 
     power_list = [] # list of lists of power
     timestamps = [] # list of timestamps
@@ -71,7 +71,7 @@ def plot_antennas_range_time(antennas_iq_file, borealis_file_structure,
             timestamp = float(arrays['sqn_timestamps'][record_num, sequence])
             # power only. no averaging done. 
             power = sqrt(voltage_samples.real**2 + voltage_samples.imag**2)[
-            			antenna_num,sequence,start_sample:end_sample]
+                        antenna_num,sequence,start_sample:end_sample]
             power_db = 10 * np.log10(power)
             sequence_noise_db = 10 * np.log10(np.average(np.sort(power)[:10]))
             power_list.append(power_db)
@@ -90,12 +90,12 @@ def plot_antennas_range_time(antennas_iq_file, borealis_file_structure,
 
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(32,16))
     img = ax1.imshow(new_power_array, extent=[x_lims[0], x_lims[1], y_lims[0], 
-    				y_lims[1]], aspect='auto', origin='lower', 
-    				cmap=plt.get_cmap('gnuplot2'), vmax=vmax, vmin=vmin)
+                    y_lims[1]], aspect='auto', origin='lower', 
+                    cmap=plt.get_cmap('gnuplot2'), vmax=vmax, vmin=vmin)
     
     plt.title('Antenna {} PWR Sequence Time {} {} to {} vs Range'.format(
-    		antenna_num, start_time.strftime('%Y%m%d'), 
-    		start_time.strftime('%H%M%S'), end_time.strftime('%H%M%S')))
+            antenna_num, start_time.strftime('%Y%m%d'), 
+            start_time.strftime('%H%M%S'), end_time.strftime('%H%M%S')))
     ax1.xaxis_date()
     date_format = mdates.DateFormatter('%H:%M:%S')
     ax1.xaxis.set_major_formatter(date_format)
@@ -106,7 +106,7 @@ def plot_antennas_range_time(antennas_iq_file, borealis_file_structure,
     basename = antennas_iq_file.split('/')[-1]
     time_of_plot = '.'.join(basename.split('.')[0:6])
     plotname = time_of_plot + '.antenna{}_{}_{}.png'.format(antenna_num, 
-    			start_sample, end_sample)
+                start_sample, end_sample)
     print(plotname)
     plt.savefig(plotname)
     plt.close() 
