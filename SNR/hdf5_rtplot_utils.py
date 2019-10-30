@@ -16,7 +16,8 @@ for testing.
 from pydarn import BorealisRead, BorealisWrite
 
 def plot_antennas_range_time(antennas_iq_file, borealis_file_structure,
-                             antenna_num, vmax=80.0, vmin=10.0, 
+                             antenna_num, antennas_iq_reader=None,
+                             vmax=80.0, vmin=10.0, 
                              start_sample=0, end_sample=70):
     """ 
     Plots unaveraged range time data from echoes received in every sequence
@@ -37,6 +38,11 @@ def plot_antennas_range_time(antennas_iq_file, borealis_file_structure,
         The antenna that you want to plot. Used to index into the data array, 
         which is organized main antennas first consecutively, followed by 
         interferometer antennas consecutively. 
+    antennas_iq_reader
+        Optional, to pass in the reader instance containing the data from
+        the file instead of reading inside the function. Speeds up the plotting
+        if you are plotting for all antennas in a file, for example.
+
     vmax
         Max power for the color bar on the plot. 
     vmin
@@ -49,8 +55,11 @@ def plot_antennas_range_time(antennas_iq_file, borealis_file_structure,
     """ 
     print(antennas_iq_file, antenna_num)
 
-    reader = BorealisRead(antennas_iq_file, 'antennas_iq', 
-                          borealis_file_structure=borealis_file_structure)
+    if antennas_iq_reader is not None:
+        reader = antennas_iq_reader
+    else:
+        reader = BorealisRead(antennas_iq_file, 'antennas_iq', 
+                              borealis_file_structure=borealis_file_structure)
 
     arrays = reader.arrays
 
@@ -62,7 +71,6 @@ def plot_antennas_range_time(antennas_iq_file, borealis_file_structure,
     noise_list = [] # list of (average of ten weakest ranges in sample range)
     max_snr_list = [] # max power - sequence noise (ave of 10 weakest ranges)
     for record_num in range(num_records):
-        groupname = '/' + record_name
         num_sequences = arrays['num_sequences'][record_num]
         # get all antennas, up to num sequences, all samples for this record.
         voltage_samples = arrays['data'][record_num,:,:num_sequences,:]
@@ -70,7 +78,7 @@ def plot_antennas_range_time(antennas_iq_file, borealis_file_structure,
         for sequence in range(num_sequences):
             timestamp = float(arrays['sqn_timestamps'][record_num, sequence])
             # power only. no averaging done. 
-            power = sqrt(voltage_samples.real**2 + voltage_samples.imag**2)[
+            power = np.sqrt(voltage_samples.real**2 + voltage_samples.imag**2)[
                         antenna_num,sequence,start_sample:end_sample]
             power_db = 10 * np.log10(power)
             sequence_noise_db = 10 * np.log10(np.average(np.sort(power)[:10]))
@@ -185,7 +193,7 @@ def plot_normalscan_bfiq_averaged_power_by_beam(bfiq_file, vmax=110.0, vmin=30.0
     records = sorted(deepdish.io.load(bfiq_file).keys())
     record_names[bfiq_file] = records
     for record_name in record_names[bfiq_file]:
-        power_list = []4
+        power_list = []
         groupname = '/' + record_name
         data = deepdish.io.load(bfiq_file,group=groupname)
         voltage_samples = data['data'].reshape(data['data_dimensions'])
