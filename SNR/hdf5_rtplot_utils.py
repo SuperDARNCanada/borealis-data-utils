@@ -15,9 +15,8 @@ for testing.
 
 from pydarn import BorealisRead, BorealisWrite
 
-def plot_antennas_range_time(antennas_iq_file, borealis_file_structure,
-                             antenna_num, antennas_iq_reader=None,
-                             vmax=80.0, vmin=10.0, 
+def plot_antennas_range_time(antennas_iq_file, antennas_iq_arrays,
+                             antenna_num, vmax=80.0, vmin=10.0, 
                              start_sample=0, end_sample=70):
     """ 
     Plots unaveraged range time data from echoes received in every sequence
@@ -30,19 +29,16 @@ def plot_antennas_range_time(antennas_iq_file, borealis_file_structure,
     Parameters 
     ----------
     antennas_iq_file
-        The file to read and plot data from. All sequence from the file will
-        have some data plotted. 
-    borealis_file_structure
-        Structure of the antennas_iq_file. 'site' or 'array'. 
+        The filename that you are plotting data from for plot title. The 
+        file should be read before being passed in, using the antennas_iq_arrays
+        parameter. 
+    antennas_iq_arrays
+        Arrays from the BorealisRead instance that read the file. (e.g. 
+        reader.arrays)
     antenna_num
         The antenna that you want to plot. Used to index into the data array, 
         which is organized main antennas first consecutively, followed by 
         interferometer antennas consecutively. 
-    antennas_iq_reader
-        Optional, to pass in the reader instance containing the data from
-        the file instead of reading inside the function. Speeds up the plotting
-        if you are plotting for all antennas in a file, for example.
-
     vmax
         Max power for the color bar on the plot. 
     vmin
@@ -55,13 +51,7 @@ def plot_antennas_range_time(antennas_iq_file, borealis_file_structure,
     """ 
     print(antennas_iq_file, antenna_num)
 
-    if antennas_iq_reader is not None:
-        reader = antennas_iq_reader
-    else:
-        reader = BorealisRead(antennas_iq_file, 'antennas_iq', 
-                              borealis_file_structure=borealis_file_structure)
-
-    arrays = reader.arrays
+    arrays = antennas_iq_arrays
 
     (num_records, num_antennas, max_num_sequences, num_samps) = \
         arrays['data'].shape
