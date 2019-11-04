@@ -11,8 +11,6 @@ import glob
 import os
 import sys
 
-from multiprocessing import Pool, Process
-
 from hdf5_rtplot_utils import plot_antennas_range_time
 from pydarn import BorealisRead
 
@@ -51,9 +49,5 @@ if __name__ == '__main__':
 
     filename = args.antennas_iq_file
     
-    # arg_tuples = []
-    
     plot_antennas_range_time(filename) # plot all antennas
 
-    # pool = Pool(processes=3)  # 3 worker processes
-    # pool.starmap(plot_antennas_range_time, arg_tuples)
