@@ -13,9 +13,20 @@ for testing.
 
 """
 
+import matplotlib
+import matplotlib.pyplot as plt
+import numpy as np
+import os
+import sys
+
+from scipy.fftpack import fft
+
+matplotlib.use('Agg')
+plt.rcParams.update({'font.size': 28})
+
 from pydarn import BorealisRead, BorealisWrite
 
-def plot_antennas_range_time(antennas_iq_file, antennas_iq_arrays,
+def plot_antennas_range_time(antennas_iq_file, antennas_iq_data,
                              antenna_num, vmax=80.0, vmin=10.0, 
                              start_sample=0, end_sample=70):
     """ 
@@ -32,9 +43,10 @@ def plot_antennas_range_time(antennas_iq_file, antennas_iq_arrays,
         The filename that you are plotting data from for plot title. The 
         file should be read before being passed in, using the antennas_iq_arrays
         parameter. 
-    antennas_iq_arrays
+    antennas_iq_data
         Arrays from the BorealisRead instance that read the file. (e.g. 
-        reader.arrays)
+        reader.arrays) this is actually a dictionary representing the 
+        array restructured file data.
     antenna_num
         The antenna that you want to plot. Used to index into the data array, 
         which is organized main antennas first consecutively, followed by 
@@ -51,7 +63,7 @@ def plot_antennas_range_time(antennas_iq_file, antennas_iq_arrays,
     """ 
     print(antennas_iq_file, antenna_num)
 
-    arrays = antennas_iq_arrays
+    arrays = antennas_iq_data
 
     (num_records, num_antennas, max_num_sequences, num_samps) = \
         arrays['data'].shape
