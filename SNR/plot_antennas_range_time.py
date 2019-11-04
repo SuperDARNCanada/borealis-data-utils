@@ -55,11 +55,8 @@ if __name__ == '__main__':
     
     arg_tuples = []
 
-    reader = BorealisRead(filename, 'antennas_iq', 'array')
-    arrays = reader.arrays
-
     for antenna_num in antenna_range:
-        arg_tuples.append((filename, copy.deepcopy(arrays), antenna_num))
+        arg_tuples.append((filename, antenna_num))
    
     pool = Pool(processes=3)  # 3 worker processes
     pool.starmap(plot_antennas_range_time, arg_tuples)

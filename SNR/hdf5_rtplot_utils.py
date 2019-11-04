@@ -12,8 +12,9 @@ These functions can be used on site to plot Borealis HDF5 files
 for testing.
 
 """
-
+import datetime
 import matplotlib
+import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 import numpy as np
 import os
@@ -26,9 +27,8 @@ plt.rcParams.update({'font.size': 28})
 
 from pydarn import BorealisRead, BorealisWrite
 
-def plot_antennas_range_time(antennas_iq_file, antennas_iq_data,
-                             antenna_num, vmax=80.0, vmin=10.0, 
-                             start_sample=0, end_sample=70):
+def plot_antennas_range_time(antennas_iq_file, antenna_num, vmax=80.0, 
+                             vmin=10.0, start_sample=0, end_sample=70):
     """ 
     Plots unaveraged range time data from echoes received in every sequence
     for a single antenna.
@@ -40,13 +40,8 @@ def plot_antennas_range_time(antennas_iq_file, antennas_iq_data,
     Parameters 
     ----------
     antennas_iq_file
-        The filename that you are plotting data from for plot title. The 
-        file should be read before being passed in, using the antennas_iq_arrays
-        parameter. 
-    antennas_iq_data
-        Arrays from the BorealisRead instance that read the file. (e.g. 
-        reader.arrays) this is actually a dictionary representing the 
-        array restructured file data.
+        The filename that you are plotting data from for plot title. The file
+        should be array restructured.
     antenna_num
         The antenna that you want to plot. Used to index into the data array, 
         which is organized main antennas first consecutively, followed by 
@@ -63,7 +58,9 @@ def plot_antennas_range_time(antennas_iq_file, antennas_iq_data,
     """ 
     print(antennas_iq_file, antenna_num)
 
-    arrays = antennas_iq_data
+    reader = BorealisRead(antennas_iq_file, 'antennas_iq', 
+                          borealis_file_structure='array')
+    arrays = reader.arrays
 
     (num_records, num_antennas, max_num_sequences, num_samps) = \
         arrays['data'].shape
@@ -113,10 +110,12 @@ def plot_antennas_range_time(antennas_iq_file, antennas_iq_data,
     ax1.tick_params(axis='x', which='major', labelsize='15')
     fig.colorbar(img)
 
-    basename = antennas_iq_file.split('/')[-1]
+    basename = os.path.basename(antennas_iq_file)
+    directory_name = os.path.dirname(antennas_iq_file)
     time_of_plot = '.'.join(basename.split('.')[0:6])
-    plotname = time_of_plot + '.antenna{}_{}_{}.png'.format(antenna_num, 
-                start_sample, end_sample)
+    plotname = directory_name + '/' time_of_plot + \
+               '.antenna{}_{}_{}.png'.format(antenna_num, start_sample, 
+                                             end_sample)
     print(plotname)
     plt.savefig(plotname)
     plt.close() 
