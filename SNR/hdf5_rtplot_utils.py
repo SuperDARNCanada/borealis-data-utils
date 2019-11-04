@@ -96,7 +96,7 @@ def plot_range_time_data(data_array, num_sequences_array, timestamps_array,
 
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(32,16), sharex=True)
     plt.title('{} PWR Sequence Time {} {} to {} vs Range'.format(
-            dateset_descriptor, start_time.strftime('%Y%m%d'), 
+            dataset_descriptor, start_time.strftime('%Y%m%d'), 
             start_time.strftime('%H%M%S'), end_time.strftime('%H%M%S')))
 
     # plot SNR and noise (10 weakest ranges average)
