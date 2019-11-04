@@ -95,7 +95,7 @@ def plot_range_time_data(data_array, num_sequences_array, timestamps_array,
     # take the transpose to get sequences x samps for the antenna num
     new_power_array = np.transpose(power_array)
 
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(32,16), sharex=True)
+    fig, ((ax1, cax1), (ax2, cax2)) = plt.subplots(2, 2, figsize=(32,16), sharex=True)
     plt.title('{} PWR Sequence Time {} {} to {} vs Range'.format(
             dataset_descriptor, start_time.strftime('%Y%m%d'), 
             start_time.strftime('%H:%M:%S'), end_time.strftime('%H:%M:%S')))
@@ -105,10 +105,6 @@ def plot_range_time_data(data_array, num_sequences_array, timestamps_array,
 
     img = ax2.imshow(new_power_array, aspect='auto', origin='lower', 
                     cmap=plt.get_cmap('gnuplot2'), vmax=vmax, vmin=vmin)
-
-    pos2 = ax2.get_position()
-    pos1 = ax1.get_position()
-    ax1.set_position([pos2.x0,pos1.y0,pos2.width,pos1.height])
 
     # extent=[x_lims[0], x_lims[1], y_lims[0], y_lims[1]], 
 
@@ -121,8 +117,9 @@ def plot_range_time_data(data_array, num_sequences_array, timestamps_array,
     # ax2.xaxis.set_major_formatter(date_format)
     # fig.autofmt_xdate()
     # ax2.tick_params(axis='x', which='major', labelsize='15')
-    fig.colorbar(img)
+    fig.colorbar(img, cax=cax1, label='SNR')
 
+    ax2.get_shared_x_axes().join(ax1, ax2)
     print(plot_filename)
     plt.savefig(plot_filename)
     plt.close() 
