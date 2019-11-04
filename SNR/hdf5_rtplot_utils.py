@@ -105,9 +105,13 @@ def plot_range_time_data(data_array, num_sequences_array, timestamps_array,
 
     img = ax2.imshow(new_power_array, aspect='auto', origin='lower', 
                     cmap=plt.get_cmap('gnuplot2'), vmax=vmax, vmin=vmin)
-    
+
+    pos2 = ax2.get_position()
+    pos1 = ax1.get_position()
+    ax1.set_position([pos2.x0,pos1.y0,pos2.width,pos1.height])
+
     # extent=[x_lims[0], x_lims[1], y_lims[0], y_lims[1]], 
-    
+
     # Using datetimes as below can be misleading because it is just using
     # a range and our sequences are not necessarily evenly spaced across 
     # the time range. Not going to plot this way until a better method can
