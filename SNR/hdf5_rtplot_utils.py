@@ -73,15 +73,15 @@ def plot_antennas_range_time(antennas_iq_file, antenna_nums=None,
     # where certain antennas were skipped in data writing for any reason.
     if antenna_nums is None:
         antenna_indices = list(range(0, num_antennas))
-        antenna_names =  list(arrays['antennas_arrays_order'])
+        antenna_names =  list(arrays['antenna_arrays_order'])
     else:
         antenna_indices = []
         antenna_names = antenna_nums
         for antenna_name in antenna_nums:
             antenna_indices.append(arrays['antenna_arrays_order'].index(
-                antenna_name))
+                'antenna_' + str(antenna_name)))
 
-    for antenna_num, antenna_name in zip(antenna_indices, antennas_names):
+    for antenna_num, antenna_name in zip(antenna_indices, antenna_names):
         print(antennas_iq_file, antenna_name)
         power_list = [] # list of lists of power
         timestamps = [] # list of timestamps
@@ -121,7 +121,7 @@ def plot_antennas_range_time(antennas_iq_file, antenna_nums=None,
                         y_lims[0], y_lims[1]], aspect='auto', origin='lower', 
                         cmap=plt.get_cmap('gnuplot2'), vmax=vmax, vmin=vmin)
         
-        plt.title('Antenna {} PWR Sequence Time {} {} to {} vs Range'.format(
+        plt.title('{} PWR Sequence Time {} {} to {} vs Range'.format(
                 antenna_name, start_time.strftime('%Y%m%d'), 
                 start_time.strftime('%H%M%S'), end_time.strftime('%H%M%S')))
         ax1.xaxis_date()
@@ -135,7 +135,7 @@ def plot_antennas_range_time(antennas_iq_file, antenna_nums=None,
         directory_name = os.path.dirname(antennas_iq_file)
         time_of_plot = '.'.join(basename.split('.')[0:6])
         plotname = directory_name + '/' + time_of_plot + \
-                   '.antenna{}_{}_{}.png'.format(antenna_name, start_sample, 
+                   '.{}_{}_{}.png'.format(antenna_name, start_sample, 
                                                  end_sample)
         print(plotname)
         plt.savefig(plotname)
