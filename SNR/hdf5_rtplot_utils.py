@@ -12,6 +12,7 @@ These functions can be used on site to plot Borealis HDF5 files
 for testing.
 
 """
+import copy
 import datetime
 import matplotlib
 import matplotlib.dates as mdates
@@ -187,9 +188,11 @@ def plot_antennas_range_time(antennas_iq_file, antenna_nums=None,
         plot_filename = directory_name + '/' + time_of_plot + \
                    '.{}_{}_{}.png'.format(antenna_name, start_sample, 
                                           end_sample)
-        arg_tuples.append((antenna_data, sequences_data, timestamps_data,
-            antenna_name, plot_filename, vmax, vmin, start_sample, end_sample))
+        arg_tuples.append((copy.copy(antenna_data), sequences_data, 
+            timestamps_data, antenna_name, plot_filename, vmax, vmin, 
+            start_sample, end_sample))
 
+    jobs = []
     antennas_index = 0
     antennas_left = True
     while antennas_left:
