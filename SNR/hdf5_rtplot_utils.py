@@ -116,19 +116,23 @@ def plot_antennas_range_time(antennas_iq_file, antenna_nums=None,
         # take the transpose to get sequences x samps for the antenna num
         new_power_array = np.transpose(power_array)
 
-        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(32,16))
-        img = ax1.imshow(new_power_array, extent=[x_lims[0], x_lims[1], 
-                        y_lims[0], y_lims[1]], aspect='auto', origin='lower', 
-                        cmap=plt.get_cmap('gnuplot2'), vmax=vmax, vmin=vmin)
-        
+        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(32,16), sharex=True)
         plt.title('{} PWR Sequence Time {} {} to {} vs Range'.format(
                 antenna_name, start_time.strftime('%Y%m%d'), 
                 start_time.strftime('%H%M%S'), end_time.strftime('%H%M%S')))
-        ax1.xaxis_date()
+
+        # plot SNR and noise (10 weakest ranges average)
+        ax1.plot(range(len(max_snr_list)), max_snr_list)
+
+        img = ax2.imshow(new_power_array, extent=[x_lims[0], x_lims[1], 
+                        y_lims[0], y_lims[1]], aspect='auto', origin='lower', 
+                        cmap=plt.get_cmap('gnuplot2'), vmax=vmax, vmin=vmin)
+        
+        ax2.xaxis_date()
         date_format = mdates.DateFormatter('%H:%M:%S')
-        ax1.xaxis.set_major_formatter(date_format)
+        ax2.xaxis.set_major_formatter(date_format)
         fig.autofmt_xdate()
-        ax1.tick_params(axis='x', which='major', labelsize='15')
+        ax2.tick_params(axis='x', which='major', labelsize='15')
         fig.colorbar(img)
 
         basename = os.path.basename(antennas_iq_file)
@@ -140,9 +144,6 @@ def plot_antennas_range_time(antennas_iq_file, antenna_nums=None,
         print(plotname)
         plt.savefig(plotname)
         plt.close() 
-
-        # plot SNR and noise (10 weakest ranges average)
-        ax2.plot(range(len(max_snr_list)), max_snr_list)
 
 
 def plot_bfiq_file_power(bfiq_file, vmax=-50.0, vmin=-120.0, beam_num=7):
