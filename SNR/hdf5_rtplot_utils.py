@@ -118,7 +118,7 @@ def plot_range_time_data(data_array, num_sequences_array, timestamps_array,
 
 
 def plot_antennas_range_time(antennas_iq_file, antenna_nums=None, 
-                             num_processes=4, vmax=80.0, vmin=10.0, 
+                             num_processes=3, vmax=80.0, vmin=10.0, 
                              start_sample=0, end_sample=70):
     """ 
     Plots unaveraged range time data from echoes received in every sequence
@@ -190,8 +190,26 @@ def plot_antennas_range_time(antennas_iq_file, antenna_nums=None,
         arg_tuples.append((antenna_data, sequences_data, timestamps_data,
             antenna_name, plot_filename, vmax, vmin, start_sample, end_sample))
 
-    pool = Pool(processes=num_processes) 
-    pool.starmap(plot_range_time_data, arg_tuples)
+    antennas_index = 0
+    antennas_left = True
+    while antennas_left:
+        for procnum in range(num_processes):
+            try:
+                antenna_args = arg_tuples[procnum]
+            except IndexError:
+                if antennas_index + procnum == 0:
+                    print('No antennas found to plot')
+                    raise
+                antennas_left = False
+                break
+            p = Process(target=plot_range_time_data, args=antenna_args)
+            jobs.append(p)
+            p.start()
+
+        for proc in jobs:
+            proc.join()
+
+        antennas_index += num_processes
 
 
 def plot_bfiq_file_power(bfiq_file, vmax=-50.0, vmin=-120.0, beam_num=7):
