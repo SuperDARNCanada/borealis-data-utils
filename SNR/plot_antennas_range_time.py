@@ -50,13 +50,10 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     filename = args.antennas_iq_file
-
-    antenna_range = list(range(0,20))
     
-    arg_tuples = []
+    # arg_tuples = []
+    
+    plot_antennas_range_time(filename) # plot all antennas
 
-    for antenna_num in antenna_range:
-        arg_tuples.append((filename, antenna_num))
-   
-    pool = Pool(processes=3)  # 3 worker processes
-    pool.starmap(plot_antennas_range_time, arg_tuples)
+    # pool = Pool(processes=3)  # 3 worker processes
+    # pool.starmap(plot_antennas_range_time, arg_tuples)

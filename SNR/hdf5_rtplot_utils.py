@@ -27,8 +27,9 @@ plt.rcParams.update({'font.size': 28})
 
 from pydarn import BorealisRead, BorealisWrite
 
-def plot_antennas_range_time(antennas_iq_file, antenna_num, vmax=80.0, 
-                             vmin=10.0, start_sample=0, end_sample=70):
+def plot_antennas_range_time(antennas_iq_file, antenna_nums=None,
+                             vmax=80.0, vmin=10.0, start_sample=0, 
+                             end_sample=70):
     """ 
     Plots unaveraged range time data from echoes received in every sequence
     for a single antenna.
@@ -42,10 +43,14 @@ def plot_antennas_range_time(antennas_iq_file, antenna_num, vmax=80.0,
     antennas_iq_file
         The filename that you are plotting data from for plot title. The file
         should be array restructured.
-    antenna_num
-        The antenna that you want to plot. Used to index into the data array, 
-        which is organized main antennas first consecutively, followed by 
-        interferometer antennas consecutively. 
+    antenna_nums
+        List of antennas you want to plot. This is the antenna number 
+        as listed in the antenna_arrays_order. The index into the data array
+        is determined by finding the index of the antenna number into the 
+        antenna_arrays_order list. The data array is organized main antennas 
+        first consecutively, followed by interferometer antennas consecutively. 
+        Default None, which allows the algorithm to plot all antennas available 
+        in the dataset.
     vmax
         Max power for the color bar on the plot. 
     vmin
@@ -56,7 +61,6 @@ def plot_antennas_range_time(antennas_iq_file, antenna_num, vmax=80.0,
         The last sample in the sequence to plot. Default 70 so ranges 0-69
         will plot.
     """ 
-    print(antennas_iq_file, antenna_num)
 
     reader = BorealisRead(antennas_iq_file, 'antennas_iq', 
                           borealis_file_structure='array')
@@ -65,63 +69,80 @@ def plot_antennas_range_time(antennas_iq_file, antenna_num, vmax=80.0,
     (num_records, num_antennas, max_num_sequences, num_samps) = \
         arrays['data'].shape
 
-    power_list = [] # list of lists of power
-    timestamps = [] # list of timestamps
-    noise_list = [] # list of (average of ten weakest ranges in sample range)
-    max_snr_list = [] # max power - sequence noise (ave of 10 weakest ranges)
-    for record_num in range(num_records):
-        num_sequences = arrays['num_sequences'][record_num]
-        # get all antennas, up to num sequences, all samples for this record.
-        voltage_samples = arrays['data'][record_num,:,:num_sequences,:]
+    # typically antenna names and antenna indices are the same except 
+    # where certain antennas were skipped in data writing for any reason.
+    if antenna_nums is None:
+        antenna_indices = list(range(0, num_antennas))
+        antenna_names =  list(arrays['antennas_arrays_order'])
+    else:
+        antenna_indices = []
+        antenna_names = antenna_nums
+        for antenna_name in antenna_nums:
+            antenna_indices.append(arrays['antenna_arrays_order'].index(
+                antenna_name))
 
-        for sequence in range(num_sequences):
-            timestamp = float(arrays['sqn_timestamps'][record_num, sequence])
-            # power only. no averaging done. 
-            power = np.sqrt(voltage_samples.real**2 + voltage_samples.imag**2)[
-                        antenna_num,sequence,start_sample:end_sample]
-            power_db = 10 * np.log10(power)
-            sequence_noise_db = 10 * np.log10(np.average(np.sort(power)[:10]))
-            power_list.append(power_db)
-            noise_list.append(sequence_noise_db)
-            max_snr_list.append(np.max(power_db)-sequence_noise_db)
-            timestamps.append(float(timestamp))
-    power_array = np.array(power_list)
-    
-    start_time = datetime.datetime.fromtimestamp(timestamps[0])
-    end_time = datetime.datetime.fromtimestamp(timestamps[-1])
+    for antenna_num, antenna_name in zip(antenna_indices, antennas_names):
+        print(antennas_iq_file, antenna_name)
+        power_list = [] # list of lists of power
+        timestamps = [] # list of timestamps
+        noise_list = [] # list of (average of ten weakest ranges in sample range)
+        max_snr_list = [] # max power - sequence noise (ave of 10 weakest ranges)
+        for record_num in range(num_records):
+            num_sequences = arrays['num_sequences'][record_num]
+            # get all antennas, up to num sequences, all samples for this record.
+            voltage_samples = arrays['data'][record_num,:,:num_sequences,:]
 
-    x_lims = mdates.date2num([start_time, end_time])
-    y_lims = [start_sample, end_sample]
-    # take the transpose to get sequences x samps for the antenna num
-    new_power_array = np.transpose(power_array)
+            for sequence in range(num_sequences):
+                timestamp = float(arrays['sqn_timestamps'][record_num, 
+                                                           sequence])
+                # power only. no averaging done. 
+                power = np.sqrt(voltage_samples.real**2 + 
+                                voltage_samples.imag**2)[antenna_num, sequence,
+                                start_sample:end_sample]
+                power_db = 10 * np.log10(power)
+                sequence_noise_db = 10 * np.log10(np.average(
+                                    np.sort(power)[:10]))
+                power_list.append(power_db)
+                noise_list.append(sequence_noise_db)
+                max_snr_list.append(np.max(power_db)-sequence_noise_db)
+                timestamps.append(float(timestamp))
+        power_array = np.array(power_list)
+        
+        start_time = datetime.datetime.fromtimestamp(timestamps[0])
+        end_time = datetime.datetime.fromtimestamp(timestamps[-1])
 
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(32,16))
-    img = ax1.imshow(new_power_array, extent=[x_lims[0], x_lims[1], y_lims[0], 
-                    y_lims[1]], aspect='auto', origin='lower', 
-                    cmap=plt.get_cmap('gnuplot2'), vmax=vmax, vmin=vmin)
-    
-    plt.title('Antenna {} PWR Sequence Time {} {} to {} vs Range'.format(
-            antenna_num, start_time.strftime('%Y%m%d'), 
-            start_time.strftime('%H%M%S'), end_time.strftime('%H%M%S')))
-    ax1.xaxis_date()
-    date_format = mdates.DateFormatter('%H:%M:%S')
-    ax1.xaxis.set_major_formatter(date_format)
-    fig.autofmt_xdate()
-    ax1.tick_params(axis='x', which='major', labelsize='15')
-    fig.colorbar(img)
+        x_lims = mdates.date2num([start_time, end_time])
+        y_lims = [start_sample, end_sample]
+        # take the transpose to get sequences x samps for the antenna num
+        new_power_array = np.transpose(power_array)
 
-    basename = os.path.basename(antennas_iq_file)
-    directory_name = os.path.dirname(antennas_iq_file)
-    time_of_plot = '.'.join(basename.split('.')[0:6])
-    plotname = directory_name + '/' time_of_plot + \
-               '.antenna{}_{}_{}.png'.format(antenna_num, start_sample, 
-                                             end_sample)
-    print(plotname)
-    plt.savefig(plotname)
-    plt.close() 
+        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(32,16))
+        img = ax1.imshow(new_power_array, extent=[x_lims[0], x_lims[1], 
+                        y_lims[0], y_lims[1]], aspect='auto', origin='lower', 
+                        cmap=plt.get_cmap('gnuplot2'), vmax=vmax, vmin=vmin)
+        
+        plt.title('Antenna {} PWR Sequence Time {} {} to {} vs Range'.format(
+                antenna_name, start_time.strftime('%Y%m%d'), 
+                start_time.strftime('%H%M%S'), end_time.strftime('%H%M%S')))
+        ax1.xaxis_date()
+        date_format = mdates.DateFormatter('%H:%M:%S')
+        ax1.xaxis.set_major_formatter(date_format)
+        fig.autofmt_xdate()
+        ax1.tick_params(axis='x', which='major', labelsize='15')
+        fig.colorbar(img)
 
-    # plot SNR and noise (10 weakest ranges average)
-    ax2.plot(range(len(max_snr_list)), max_snr_list)
+        basename = os.path.basename(antennas_iq_file)
+        directory_name = os.path.dirname(antennas_iq_file)
+        time_of_plot = '.'.join(basename.split('.')[0:6])
+        plotname = directory_name + '/' + time_of_plot + \
+                   '.antenna{}_{}_{}.png'.format(antenna_name, start_sample, 
+                                                 end_sample)
+        print(plotname)
+        plt.savefig(plotname)
+        plt.close() 
+
+        # plot SNR and noise (10 weakest ranges average)
+        ax2.plot(range(len(max_snr_list)), max_snr_list)
 
 
 def plot_bfiq_file_power(bfiq_file, vmax=-50.0, vmin=-120.0, beam_num=7):
