@@ -89,28 +89,34 @@ def plot_range_time_data(data_array, num_sequences_array, timestamps_array,
     start_time = datetime.datetime.fromtimestamp(timestamps[0])
     end_time = datetime.datetime.fromtimestamp(timestamps[-1])
 
-    x_lims = mdates.date2num([start_time, end_time])
-    y_lims = [start_sample, end_sample]
+    # x_lims = mdates.date2num([start_time, end_time])
+    # y_lims = [start_sample, end_sample]
+    
     # take the transpose to get sequences x samps for the antenna num
     new_power_array = np.transpose(power_array)
 
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(32,16), sharex=True)
     plt.title('{} PWR Sequence Time {} {} to {} vs Range'.format(
             dataset_descriptor, start_time.strftime('%Y%m%d'), 
-            start_time.strftime('%H%M%S'), end_time.strftime('%H%M%S')))
+            start_time.strftime('%H:%M:%S'), end_time.strftime('%H:%M:%S')))
 
     # plot SNR and noise (10 weakest ranges average)
     ax1.plot(range(len(max_snr_list)), max_snr_list)
 
-    img = ax2.imshow(new_power_array, extent=[x_lims[0], x_lims[1], 
-                    y_lims[0], y_lims[1]], aspect='auto', origin='lower', 
+    img = ax2.imshow(new_power_array, aspect='auto', origin='lower', 
                     cmap=plt.get_cmap('gnuplot2'), vmax=vmax, vmin=vmin)
     
-    ax2.xaxis_date()
-    date_format = mdates.DateFormatter('%H:%M:%S')
-    ax2.xaxis.set_major_formatter(date_format)
-    fig.autofmt_xdate()
-    ax2.tick_params(axis='x', which='major', labelsize='15')
+    # extent=[x_lims[0], x_lims[1], y_lims[0], y_lims[1]], 
+    
+    # Using datetimes as below can be misleading because it is just using
+    # a range and our sequences are not necessarily evenly spaced across 
+    # the time range. Not going to plot this way until a better method can
+    # be found.
+    # ax2.xaxis_date()
+    # date_format = mdates.DateFormatter('%H:%M:%S')
+    # ax2.xaxis.set_major_formatter(date_format)
+    # fig.autofmt_xdate()
+    # ax2.tick_params(axis='x', which='major', labelsize='15')
     fig.colorbar(img)
 
     print(plot_filename)
