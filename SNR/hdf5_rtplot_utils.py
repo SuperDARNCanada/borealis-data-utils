@@ -198,7 +198,7 @@ def plot_antennas_range_time(antennas_iq_file, antenna_nums=None,
     while antennas_left:
         for procnum in range(num_processes):
             try:
-                antenna_args = arg_tuples[procnum]
+                antenna_args = arg_tuples[antennas_index + procnum]
             except IndexError:
                 if antennas_index + procnum == 0:
                     print('No antennas found to plot')
