@@ -98,15 +98,21 @@ def plot_range_time_data(data_array, num_sequences_array, timestamps_array,
     kw = {'width_ratios': [95:5]}
     fig, ((ax1, cax1), (ax2, cax2)) = plt.subplots(2, 2, figsize=(32,16), 
                 gridspec_kw=kw)
-    plt.title('{} PWR Sequence Time {} {} to {} vs Range'.format(
+    fig.suptitle('{} PWR Sequence Time {} {} to {} vs Range'.format(
             dataset_descriptor, start_time.strftime('%Y%m%d'), 
             start_time.strftime('%H:%M:%S'), end_time.strftime('%H:%M:%S')))
 
     # plot SNR and noise (10 weakest ranges average)
     ax1.plot(range(len(max_snr_list)), max_snr_list)
+    ax1.set_title('Max SNR in sequence')
+    ax1.set_ylabel('SNR (dB)')
 
     img = ax2.imshow(new_power_array, aspect='auto', origin='lower', 
                     cmap=plt.get_cmap('gnuplot2'), vmax=vmax, vmin=vmin)
+    ax2.set_title('Range-time based on samples {} to {}'.format(start_sample,
+                                end_sample))
+    ax2.set_ylabel('Sample number (Range)')
+    ax2.set_xlabel('Sequence number (spans time)')
 
     # extent=[x_lims[0], x_lims[1], y_lims[0], y_lims[1]], 
 
@@ -119,7 +125,8 @@ def plot_range_time_data(data_array, num_sequences_array, timestamps_array,
     # ax2.xaxis.set_major_formatter(date_format)
     # fig.autofmt_xdate()
     # ax2.tick_params(axis='x', which='major', labelsize='15')
-    fig.colorbar(img, cax=cax1, label='SNR')
+    fig.colorbar(img, cax=cax2, label='SNR')
+    cax1.axis('off') 
 
     ax2.get_shared_x_axes().join(ax1, ax2)
     print(plot_filename)
