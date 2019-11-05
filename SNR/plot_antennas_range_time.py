@@ -2,7 +2,8 @@
 # Author: Marci Detwiller
 
 """
-This script is used to 
+This script is used to plot all antennas range-time data from a single
+antennas_iq file.
 """
 
 import argparse
@@ -40,8 +41,6 @@ def plot_parser():
     parser = argparse.ArgumentParser(usage=usage_msg())
     parser.add_argument("antennas_iq_file", help="Name of the file to plot.")
     return parser
-
-#colour_ranges = { iq_file : {'vmax' : 110.0, 'vmin' : 30.0} for iq_file in iq_files} # 
 
 if __name__ == '__main__':
     parser = plot_parser()

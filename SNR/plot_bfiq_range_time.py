@@ -2,7 +2,8 @@
 # Author: Marci Detwiller
 
 """
-This script is used to 
+This script is used to plot all beams range-time data from a single
+bfiq file.
 """
 
 import argparse
@@ -11,7 +12,7 @@ import glob
 import os
 import sys
 
-from hdf5_rtplot_utils import plot_antennas_range_time
+from hdf5_rtplot_utils import plot_arrays_range_time
 from pydarn import BorealisRead
 
 def usage_msg():
@@ -26,7 +27,7 @@ def usage_msg():
         The usage message on how to use this 
     """
 
-    usage_message = """ plot_arrays_range_time.py [-h] bfiq_file
+    usage_message = """ plot_bfiq_range_time.py [-h] bfiq_file
     
     Pass in the name of the bfiq array-restructured file that you want 
     to plot range time data from. All beams and arrays will be plotted 
@@ -40,8 +41,6 @@ def plot_parser():
     parser = argparse.ArgumentParser(usage=usage_msg())
     parser.add_argument("bfiq_file", help="Name of the file to plot.")
     return parser
-
-#colour_ranges = { iq_file : {'vmax' : 110.0, 'vmin' : 30.0} for iq_file in iq_files} # 
 
 if __name__ == '__main__':
     parser = plot_parser()

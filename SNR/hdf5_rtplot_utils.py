@@ -11,6 +11,17 @@ from Borealis HDF5 files of the following types:
 These functions can be used on site to plot Borealis HDF5 files
 for testing.
 
+Functions
+---------
+plot_range_time_data
+    Used by the other functions. Takes the necessary arrays and plots 
+    the data as a range-time and SNR plot. 
+plot_antennas_range_time
+    Uses plot_range_time_data and BorealisRead to read an array-structured 
+    antennas_iq file and plot the range-time data.
+plot_arrays_range_time
+    Uses plot_range_time_data and BorealisRead to read an array-structured 
+    bfiq file and plot the range-time data.
 """
 import copy
 import datetime
@@ -33,7 +44,9 @@ def plot_range_time_data(data_array, num_sequences_array, timestamps_array,
                          dataset_descriptor, plot_filename, vmax, vmin, 
                          start_sample, end_sample):
     """
-    Plots data as range time given an array with correct dimensions.
+    Plots data as range time given an array with correct dimensions. Also
+    plots SNR by finding the ratio of max power in the sequence to average 
+    power of the 10 weakest range gates.
 
     Parameters
     ----------
