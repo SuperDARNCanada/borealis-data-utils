@@ -81,7 +81,7 @@ def plot_range_time_data(data_array, num_sequences_array, timestamps_array,
                                 np.sort(power)[:10]))
             power_list.append(power_db)
             noise_list.append(sequence_noise_db)
-            max_snr_list.append(np.max(power_db)-sequence_noise_db)
+            max_snr_list.append(np.max(power_db[2:])-sequence_noise_db)
             timestamps.append(float(timestamp))
     power_array = np.array(power_list)
     
