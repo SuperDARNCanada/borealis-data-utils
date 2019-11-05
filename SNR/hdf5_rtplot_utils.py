@@ -97,7 +97,7 @@ def plot_range_time_data(data_array, num_sequences_array, timestamps_array,
     kw = {'width_ratios': [95,5]}
     fig, ((ax1, cax1), (ax2, cax2)) = plt.subplots(2, 2, figsize=(32,16), 
                 gridspec_kw=kw)
-    fig.suptitle('{} PWR Sequence Time {} {} to {} vs Range'.format(
+    fig.suptitle('{} PWR Sequence Time {} {} to {} UT vs Range'.format(
             dataset_descriptor, start_time.strftime('%Y%m%d'), 
             start_time.strftime('%H:%M:%S'), end_time.strftime('%H:%M:%S')))
 
@@ -228,6 +228,131 @@ def plot_antennas_range_time(antennas_iq_file, antenna_nums=None,
             proc.join()
 
         antennas_index += num_processes
+
+
+def plot_arrays_range_time(bfiq_file, beam_nums=None, num_processes=3, 
+                           vmax=40.0, vmin=10.0, start_sample=0, end_sample=70):
+    """ 
+    Plots unaveraged range time data from echoes received in every sequence
+    for a single beam.
+
+    Gets the samples between start_sample and end_sample for every
+    sequence in the file, calculates their power, and plots these sequences side
+    by side. Uses gnuplot2 color map. 
+
+    Parameters 
+    ----------
+    bfiq_file
+        The filename that you are plotting data from for plot title. The file
+        should be array restructured.
+    beam_nums
+        The list of beam numbers to plot. Default None which allows all beams 
+        available in the file to be plotted.
+    num_processes
+        The number of processes to use to plot the data from the beam_nums.
+    vmax
+        Max power for the color bar on the plot. Default 40 dB.
+    vmin
+        Min power for the color bar on the plot.  Default 10 dB. 
+    start_sample
+        The sample to start plotting at. Default 0th range (first sample).
+    end_sample
+        The last sample in the sequence to plot. Default 70 so ranges 0-69
+        will plot.
+    """ 
+
+    reader = BorealisRead(bfiq_file, 'bfiq', 
+                          borealis_file_structure='array')
+    arrays = reader.arrays
+
+    (num_records, num_antenna_arrays, max_num_sequences, max_num_beams, 
+        num_samps) = arrays['data'].shape
+
+    basename = os.path.basename(bfiq_file)
+    directory_name = os.path.dirname(bfiq_file)
+    time_of_plot = '.'.join(basename.split('.')[0:6])
+
+    # find the number of unique beams and their azimuths
+    if beam_nums is None:
+        # arrays['beam_nums'] is of shape num_records x max_num_beams
+        # Note we do not want to include appended zeroes in the unique calc.
+        all_beams = np.empty(0)
+        for record_num in range(0, num_records):
+            all_beams = np.concatenate(all_beams, arrays['beam_nums'][
+                record_num,:arrays['num_beams'][record_num]])
+        beam_names = np.unique(all_beams)
+    else:
+        beam_names = beam_nums
+
+    sequences_data = arrays['num_sequences']
+    timestamps_data = arrays['sqn_timestamps']
+
+    arg_tuples = []
+    print(bfiq_file)
+
+    # power_dict[bfiq_file] = {}
+    # for array in range(0,2):
+    #     power_list = []
+    #     for record_name in record_names[bfiq_file]:
+    #         groupname = '/' + record_name
+    #         data = deepdish.io.load(bfiq_file,group=groupname)
+    #         if data['beam_nums'][0] != beam_num:
+    #             continue
+    #         voltage_samples = data['data'].reshape(data['data_dimensions'])
+    #         #print(data['data_descriptors'])
+    #         num_arrays, num_sequences, num_beams, num_samps = data['data_dimensions']
+    #         for sequence in range(num_sequences):
+    #             timestamp = float(data['sqn_timestamps'][sequence])
+    #             #print(timestamp)
+    #             # power only. no averaging done. 
+    #             power = (voltage_samples.real**2 + voltage_samples.imag**2)[array,sequence,beam_num,0:69]
+    #             power_db = 10 * np.log10(power)
+    #             power_dict[timestamp] = power_db
+    #             power_list.append(power_db)
+    #     power_array = np.array(power_list)
+
+    #         if data['beam_nums'][0] != beam_num:
+    #             continue
+
+    for array_num, array_name in enumerate(arrays['antenna_arrays_order']):
+        for beam_name in beam_names:
+            # find only the data with this beam name
+            beam_array_data = np.empty(0)
+            for record_num in range(0, num_records):
+                if beam_name in arrays['beam_nums'][record_num]:
+                    beam_index = list(arrays['beam_nums'][record_num]).index(beam_name)
+                    beam_array_data = np.concatenate(beam_array_data, 
+                        arrays['data'][:,array_num,:,beam_index,:])
+
+            plot_filename = directory_name + '/' + time_of_plot + \
+                       '.{}_beam{}_{}_{}.png'.format(array_name, beam_name,
+                                            start_sample, end_sample)
+            descriptor = array_name + ' beam ' + beam_name
+            arg_tuples.append((copy.copy(beam_array_data), sequences_data, 
+                timestamps_data, descriptor, plot_filename, vmax, vmin, 
+                start_sample, end_sample))
+
+    jobs = []
+    plots_index = 0
+    plots_left = True
+    while plots_left:
+        for procnum in range(num_processes):
+            try:
+                plot_args = arg_tuples[plots_index + procnum]
+            except IndexError:
+                if plots_index + procnum == 0:
+                    print('No data found to plot')
+                    raise
+                plots_left = False
+                break
+            p = Process(target=plot_range_time_data, args=plot_args)
+            jobs.append(p)
+            p.start()
+
+        for proc in jobs:
+            proc.join()
+
+        plots_index += num_processes
 
 
 def plot_bfiq_file_power(bfiq_file, vmax=-50.0, vmin=-120.0, beam_num=7):
