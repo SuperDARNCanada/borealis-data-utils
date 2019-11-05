@@ -95,7 +95,7 @@ def plot_range_time_data(data_array, num_sequences_array, timestamps_array,
     # take the transpose to get sequences x samps for the antenna num
     new_power_array = np.transpose(power_array)
 
-    kw = {'width_ratios': [95:5]}
+    kw = {'width_ratios': [95,5]}
     fig, ((ax1, cax1), (ax2, cax2)) = plt.subplots(2, 2, figsize=(32,16), 
                 gridspec_kw=kw)
     fig.suptitle('{} PWR Sequence Time {} {} to {} vs Range'.format(
