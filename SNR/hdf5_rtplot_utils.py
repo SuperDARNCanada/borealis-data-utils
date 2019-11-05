@@ -53,10 +53,9 @@ def plot_range_time_data(data_array, num_sequences_array, timestamps_array,
     vmin
         Min power for the color bar on the plot. 
     start_sample
-        The sample to start plotting at. Default 0th range (first sample).
+        The sample to start plotting at. 
     end_sample
-        The last sample in the sequence to plot. Default 70 so ranges 0-69
-        will plot.
+        The last sample in the sequence to plot. 
     """
     print(dataset_descriptor)
     (num_records, max_num_sequences, num_samps) = data_array.shape
@@ -135,7 +134,7 @@ def plot_range_time_data(data_array, num_sequences_array, timestamps_array,
 
 
 def plot_antennas_range_time(antennas_iq_file, antenna_nums=None, 
-                             num_processes=3, vmax=80.0, vmin=10.0, 
+                             num_processes=3, vmax=40.0, vmin=10.0, 
                              start_sample=0, end_sample=70):
     """ 
     Plots unaveraged range time data from echoes received in every sequence
@@ -161,9 +160,9 @@ def plot_antennas_range_time(antennas_iq_file, antenna_nums=None,
     num_processes
         The number of processes to use to plot the data.
     vmax
-        Max power for the color bar on the plot. 
+        Max power for the color bar on the plot. Default 40 dB.
     vmin
-        Min power for the color bar on the plot. 
+        Min power for the color bar on the plot.  Default 10 dB. 
     start_sample
         The sample to start plotting at. Default 0th range (first sample).
     end_sample
