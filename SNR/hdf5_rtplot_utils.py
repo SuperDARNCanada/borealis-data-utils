@@ -65,7 +65,7 @@ def plot_range_time_data(data_array, num_sequences_array, timestamps_array,
     noise_list = [] # list of (average of ten weakest ranges in sample range)
     max_snr_list = [] # max power - sequence noise (ave of 10 weakest ranges)
     for record_num in range(num_records):
-        num_sequences = num_sequences_array[record_num]
+        num_sequences = int(num_sequences_array[record_num])
         # get all antennas, up to num sequences, all samples for this record.
         voltage_samples = data_array[record_num,:num_sequences,:]
 
@@ -231,7 +231,7 @@ def plot_antennas_range_time(antennas_iq_file, antenna_nums=None,
 
 
 def plot_arrays_range_time(bfiq_file, beam_nums=None, num_processes=3, 
-                           vmax=40.0, vmin=10.0, start_sample=0, end_sample=70):
+                           vmax=60.0, vmin=10.0, start_sample=0, end_sample=70):
     """ 
     Plots unaveraged range time data from echoes received in every sequence
     for a single beam.
@@ -251,7 +251,7 @@ def plot_arrays_range_time(bfiq_file, beam_nums=None, num_processes=3,
     num_processes
         The number of processes to use to plot the data from the beam_nums.
     vmax
-        Max power for the color bar on the plot. Default 40 dB.
+        Max power for the color bar on the plot. Default 60 dB.
     vmin
         Min power for the color bar on the plot.  Default 10 dB. 
     start_sample
@@ -278,59 +278,47 @@ def plot_arrays_range_time(bfiq_file, beam_nums=None, num_processes=3,
         # Note we do not want to include appended zeroes in the unique calc.
         all_beams = np.empty(0)
         for record_num in range(0, num_records):
-            all_beams = np.concatenate(all_beams, arrays['beam_nums'][
-                record_num,:arrays['num_beams'][record_num]])
+            num_beams_in_record = int(arrays['num_beams'][record_num])
+            all_beams = np.concatenate((all_beams, arrays['beam_nums'][
+                record_num,:num_beams_in_record]))
         beam_names = np.unique(all_beams)
     else:
         beam_names = beam_nums
 
-    sequences_data = arrays['num_sequences']
-    timestamps_data = arrays['sqn_timestamps']
-
     arg_tuples = []
     print(bfiq_file)
 
-    # power_dict[bfiq_file] = {}
-    # for array in range(0,2):
-    #     power_list = []
-    #     for record_name in record_names[bfiq_file]:
-    #         groupname = '/' + record_name
-    #         data = deepdish.io.load(bfiq_file,group=groupname)
-    #         if data['beam_nums'][0] != beam_num:
-    #             continue
-    #         voltage_samples = data['data'].reshape(data['data_dimensions'])
-    #         #print(data['data_descriptors'])
-    #         num_arrays, num_sequences, num_beams, num_samps = data['data_dimensions']
-    #         for sequence in range(num_sequences):
-    #             timestamp = float(data['sqn_timestamps'][sequence])
-    #             #print(timestamp)
-    #             # power only. no averaging done. 
-    #             power = (voltage_samples.real**2 + voltage_samples.imag**2)[array,sequence,beam_num,0:69]
-    #             power_db = 10 * np.log10(power)
-    #             power_dict[timestamp] = power_db
-    #             power_list.append(power_db)
-    #     power_array = np.array(power_list)
+    for beam_name in beam_names:
+        # find only the data with this beam name
+        # data will be num_records avail (with this beam and array)
+        # to plot x num_sequences x num_samps
+        # also have to remake the timestamps and sequences data only for 
+        # those records that contain this beam.
+        beam_timestamps_data = np.empty((0,max_num_sequences))
+        beam_sequences_data = np.empty(0)
+        beam_arrays_data = np.empty((0, num_antenna_arrays, 
+            max_num_sequences, num_samps))
+        for record_num in range(0, num_records):
+            if beam_name in arrays['beam_nums'][record_num]:
+                beam_index = list(arrays['beam_nums'][record_num]).index(beam_name)
+                beam_timestamps_data = np.concatenate((beam_timestamps_data,
+                    np.reshape(arrays['sqn_timestamps'][record_num], (1, 
+                        max_num_sequences))))
+                beam_sequences_data = np.concatenate((beam_sequences_data,
+                    np.reshape(arrays['num_sequences'][record_num], 1)))
+                beam_arrays_data = np.concatenate((beam_arrays_data, 
+                    np.reshape(arrays['data'][record_num,
+                        :,:,beam_index,:], (1, num_antenna_arrays, 
+                            max_num_sequences, num_samps))))
 
-    #         if data['beam_nums'][0] != beam_num:
-    #             continue
-
-    for array_num, array_name in enumerate(arrays['antenna_arrays_order']):
-        for beam_name in beam_names:
-            # find only the data with this beam name
-            beam_array_data = np.empty(0)
-            for record_num in range(0, num_records):
-                if beam_name in arrays['beam_nums'][record_num]:
-                    beam_index = list(arrays['beam_nums'][record_num]).index(beam_name)
-                    beam_array_data = np.concatenate(beam_array_data, 
-                        arrays['data'][:,array_num,:,beam_index,:])
-
+        for array_num, array_name in enumerate(arrays['antenna_arrays_order']):
             plot_filename = directory_name + '/' + time_of_plot + \
                        '.{}_beam{}_{}_{}.png'.format(array_name, beam_name,
                                             start_sample, end_sample)
-            descriptor = array_name + ' beam ' + beam_name
-            arg_tuples.append((copy.copy(beam_array_data), sequences_data, 
-                timestamps_data, descriptor, plot_filename, vmax, vmin, 
-                start_sample, end_sample))
+            descriptor = array_name + ' beam ' + str(beam_name)
+            arg_tuples.append((copy.copy(beam_arrays_data[:,array_num,:,:]), 
+                beam_sequences_data, beam_timestamps_data, descriptor, 
+                plot_filename, vmax, vmin, start_sample, end_sample))
 
     jobs = []
     plots_index = 0
@@ -354,121 +342,25 @@ def plot_arrays_range_time(bfiq_file, beam_nums=None, num_processes=3,
 
         plots_index += num_processes
 
-
-def plot_bfiq_file_power(bfiq_file, vmax=-50.0, vmin=-120.0, beam_num=7):
-    """
-    Plots the bfiq file. Takes the first 70 samples from first (often only) beam for each array in all records and plots them out.
-    No averaging is done, but instead sequences are plotted side by side. Plots two figures in total, one for each array.
-    DOes not take into account varying beam directions between records!!
-
-    """
-    record_names = {}
-    power_dict = {}
-    beam_num = 0
-
-    print(bfiq_file)
-    records = sorted(deepdish.io.load(bfiq_file).keys())
-    record_names[bfiq_file] = records
-    power_dict[bfiq_file] = {}
-    for array in range(0,2):
-        power_list = []
-        for record_name in record_names[bfiq_file]:
-            groupname = '/' + record_name
-            data = deepdish.io.load(bfiq_file,group=groupname)
-            if data['beam_nums'][0] != beam_num:
-                continue
-            voltage_samples = data['data'].reshape(data['data_dimensions'])
-            #print(data['data_descriptors'])
-            num_arrays, num_sequences, num_beams, num_samps = data['data_dimensions']
-            for sequence in range(num_sequences):
-                timestamp = float(data['sqn_timestamps'][sequence])
-                #print(timestamp)
-                # power only. no averaging done. 
-                power = (voltage_samples.real**2 + voltage_samples.imag**2)[array,sequence,beam_num,0:69]
-                power_db = 10 * np.log10(power)
-                power_dict[timestamp] = power_db
-                power_list.append(power_db)
-        power_array = np.array(power_list)
-
-        # take the transpose to get sequences x samps for the antenna num
-        new_power_array = np.transpose(power_array)
-
-        #power_dict[bfiq_file][array] = new_power_array
-
-        fig, ax = plt.subplots(figsize=(32,16))
-        img = ax.imshow(new_power_array, aspect='auto', origin='lower', cmap=plt.get_cmap('gnuplot2'), vmax = vmax, vmin = vmin) #
-        fig.colorbar(img)
-
-        basename = bfiq_file.split('/')[-1]
-        time_of_plot = '.'.join(basename.split('.')[0:6])
-        plotname = time_of_plot + '.array{}.png'.format(array)
-        print(plotname)
-        plt.savefig(plotname)
-        plt.close() 
-        snr = np.max(new_power_array) - np.mean(new_power_array[:,10], axis=0) # use average of a close range as noise floor, see very little there (45 * 7 = 315 km range)
-        print(snr)
-
-
-def plot_normalscan_bfiq_averaged_power_by_beam(bfiq_file, vmax=110.0, vmin=30.0):
-    """
-    Plots the bfiq file. Takes the first 70 samples from first (often only) beam for each array in all records and plots them out.
-    No averaging is done, but instead sequences are plotted side by side. Plots two figures in total, one for each array.
-    DOes not take into account varying beam directions between records!!
-
-    """
-    record_names = {}
-    main_power_dict = {}
-    intf_power_dict = {}
-    beam_num = 0
-
-    print(bfiq_file)
-    records = sorted(deepdish.io.load(bfiq_file).keys())
-    record_names[bfiq_file] = records
-    for record_name in record_names[bfiq_file]:
-        power_list = []
-        groupname = '/' + record_name
-        data = deepdish.io.load(bfiq_file,group=groupname)
-        voltage_samples = data['data'].reshape(data['data_dimensions'])
-            #print(data['data_descriptors'])
-        num_arrays, num_sequences, num_beams, num_samps = data['data_dimensions']
-        timestamps = [float(i) for i in data['sqn_timestamps']]
-                #print(timestamp)
-                # averaging here
-        for array in range(0,2):
-            averaged_power = np.mean(((voltage_samples.real**2 + voltage_samples.imag**2)/50.0)[array,:,beam_num,:], axis=0)
-#            print(averaged_power.shape)
-            power_db = 10 * np.log10(averaged_power)
-            #print(np.max(power_db))
-            beam_dir = data['beam_nums'][0]
-            if array==0:
-                if beam_dir not in main_power_dict.keys():
-                    main_power_dict[beam_dir] =[list(power_db)]
-                else:
-                    main_power_dict[beam_dir].append(list(power_db))
-            else:
-                if beam_dir not in intf_power_dict.keys():
-                    intf_power_dict[beam_dir] = [list(power_db)]
-                else:
-                    intf_power_dict[beam_dir].append(list(power_db))
     
-    for beam in main_power_dict.keys():
-        main_power_array = np.transpose(np.array(main_power_dict[beam])[:,0:69])
-        intf_power_array = np.transpose(np.array(intf_power_dict[beam])[:,0:69])
-        print(main_power_array.shape)
-        fig, (ax1, ax2, cax) = plt.subplots(nrows=3, figsize=(32,24), gridspec_kw={'height_ratios':[0.4,0.4,0.1]})
-        img1 = ax1.imshow(main_power_array, aspect='auto', origin='lower', cmap=plt.get_cmap('gnuplot2'), vmax=vmax, vmin=vmin) #
-        img2 = ax2.imshow(intf_power_array, aspect='auto', origin='lower', cmap=plt.get_cmap('gnuplot2'), vmax=vmax, vmin=vmin)
-        fig.colorbar(img1, cax=cax, orientation='horizontal')
+    # for beam in main_power_dict.keys():
+    #     main_power_array = np.transpose(np.array(main_power_dict[beam])[:,0:69])
+    #     intf_power_array = np.transpose(np.array(intf_power_dict[beam])[:,0:69])
+    #     print(main_power_array.shape)
+    #     fig, (ax1, ax2, cax) = plt.subplots(nrows=3, figsize=(32,24), gridspec_kw={'height_ratios':[0.4,0.4,0.1]})
+    #     img1 = ax1.imshow(main_power_array, aspect='auto', origin='lower', cmap=plt.get_cmap('gnuplot2'), vmax=vmax, vmin=vmin) #
+    #     img2 = ax2.imshow(intf_power_array, aspect='auto', origin='lower', cmap=plt.get_cmap('gnuplot2'), vmax=vmax, vmin=vmin)
+    #     fig.colorbar(img1, cax=cax, orientation='horizontal')
 
-        basename = bfiq_file.split('/')[-1]
-        time_of_plot = '.'.join(basename.split('.')[0:6])
-        plotname = time_of_plot + '.beam{}.png'.format(beam)
-        print(plotname)
-        plt.savefig(plotname)
-        plt.close()
-        snr = np.max(main_power_array) - np.mean(main_power_array[:,10], axis=0) # use average of a close range as noise floor, see very little there (45 * 7 = 315 km range)
-        print('Ave of array: {}'.format(np.average(main_power_array)))
-        print('FILE {} beam {} main array snr: {}'.format(bfiq_file,beam,snr))
+    #     basename = bfiq_file.split('/')[-1]
+    #     time_of_plot = '.'.join(basename.split('.')[0:6])
+    #     plotname = time_of_plot + '.beam{}.png'.format(beam)
+    #     print(plotname)
+    #     plt.savefig(plotname)
+    #     plt.close()
+    #     snr = np.max(main_power_array) - np.mean(main_power_array[:,10], axis=0) # use average of a close range as noise floor, see very little there (45 * 7 = 315 km range)
+    #     print('Ave of array: {}'.format(np.average(main_power_array)))
+    #     print('FILE {} beam {} main array snr: {}'.format(bfiq_file,beam,snr))
 
 
 def plot_lag_xcfphase(acf_file):
