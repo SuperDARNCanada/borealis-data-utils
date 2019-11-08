@@ -2,8 +2,8 @@
 # Author: Marci Detwiller
 
 """
-This script is used to plot all antennas range-time data from a single
-antennas_iq file.
+This script is used to plot all beams, lag zero, main_acfs, intf_acfs,
+and xcfs power. 
 """
 
 import argparse
@@ -12,7 +12,7 @@ import glob
 import os
 import sys
 
-from hdf5_rtplot_utils import plot_antennas_range_time
+from hdf5_rtplot_utils import plot_rawacf_lag_pwr
 
 def usage_msg():
     """
@@ -26,10 +26,10 @@ def usage_msg():
         The usage message on how to use this 
     """
 
-    usage_message = """ plot_antennas_range_time.py [-h] antennas_iq_file
+    usage_message = """ plot_rawacf_lag_power.py [-h] rawacf_file
     
-    Pass in the name of the antennas_iq array-restructured file that you want 
-    to plot range time data from. Antenna numbers from 0 to 20 will be plotted 
+    Pass in the name of the rawacf array-restructured file that you want 
+    to plot range time data from. All ranges power will be plotted 
     on separate plots.
     """
 
@@ -38,7 +38,7 @@ def usage_msg():
 
 def plot_parser():
     parser = argparse.ArgumentParser(usage=usage_msg())
-    parser.add_argument("antennas_iq_file", help="Name of the file to plot.")
+    parser.add_argument("rawacf_file", help="Name of the file to plot.")
     return parser
 
 
@@ -46,7 +46,8 @@ if __name__ == '__main__':
     parser = plot_parser()
     args = parser.parse_args()
 
-    filename = args.antennas_iq_file
+    filename = args.rawacf_file
     
-    plot_antennas_range_time(filename) # plot all antennas
+    plot_rawacf_lag_pwr(filename) # plot all beams
+
 

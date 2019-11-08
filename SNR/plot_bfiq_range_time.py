@@ -13,7 +13,6 @@ import os
 import sys
 
 from hdf5_rtplot_utils import plot_arrays_range_time
-from pydarn import BorealisRead
 
 def usage_msg():
     """
@@ -41,6 +40,7 @@ def plot_parser():
     parser = argparse.ArgumentParser(usage=usage_msg())
     parser.add_argument("bfiq_file", help="Name of the file to plot.")
     return parser
+
 
 if __name__ == '__main__':
     parser = plot_parser()

@@ -149,6 +149,136 @@ def plot_unaveraged_range_time_data(data_array, num_sequences_array,
     plt.close() 
 
 
+def plot_averaged_range_time_data(data_array, timestamps_array, 
+    dataset_descriptor, plot_filename, vmax, vmin):
+    """
+    Plots data as range time given an array with correct dimensions. Also
+    plots SNR by finding the ratio of max power in the sequence to average 
+    power of the 10 weakest range gates.
+
+    Note that this plots averaged data. 
+
+    Parameters
+    ----------
+    data_array
+        Array with shape num_records x num_samps (or num_ranges) for some 
+        dataset.
+    timestamps_array
+        Array of timestamps with dimensions num_records x max_num_sequences.
+    dataset_descriptor
+        Name for dataset, to be included in plot title.
+    plot_filename
+        Where to save plot.
+    vmax
+        Max power for the color bar on the plot. 
+    vmin
+        Min power for the color bar on the plot. 
+    """
+    print(dataset_descriptor)
+    (num_records, num_samps) = data_array.shape
+
+    power_list = [] # list of lists of power
+    timestamps = [] # list of timestamps
+    noise_list = [] # list of (average of ten weakest ranges in sample range)
+    max_snr_list = [] # max power - noise (ave of 10 weakest ranges)
+    for record_num in range(num_records):
+        # get all ranges for this record
+        voltage_samples = data_array[record_num,:]
+        # get first timestamp in this record.
+        timestamp = float(timestamps_array[record_num, 0])
+        # power only. no averaging done. 
+        power = np.sqrt(voltage_samples.real**2 + 
+                        voltage_samples.imag**2)
+        power_db = 10 * np.log10(power)
+        # set noise to ave of 10 lowest ranges
+        record_noise_db = 10 * np.log10(np.average(
+                            np.sort(power)[:10]))
+        power_list.append(power_db)
+        noise_list.append(record_noise_db)
+        max_snr_list.append(np.max(power_db[2:]) - record_noise_db)
+        timestamps.append(timestamp)
+    new_power_array = np.array(power_list)
+    
+    start_time = datetime.datetime.fromtimestamp(timestamps[0])
+    end_time = datetime.datetime.fromtimestamp(timestamps[-1])
+
+    # x_lims = mdates.date2num([start_time, end_time])
+    # y_lims = [start_sample, end_sample]
+
+    kw = {'width_ratios': [95,5]}
+    fig, ((ax1, cax1), (ax2, cax2)) = plt.subplots(2, 2, figsize=(32,16), 
+                gridspec_kw=kw)
+    fig.suptitle('{} PWR Time {} {} to {} UT vs Range'.format(
+            dataset_descriptor, start_time.strftime('%Y%m%d'), 
+            start_time.strftime('%H:%M:%S'), end_time.strftime('%H:%M:%S')))
+
+    # plot SNR and noise (10 weakest ranges average)
+    ax1.plot(range(len(max_snr_list)), max_snr_list)
+    ax1.set_title('Max SNR in record')
+    ax1.set_ylabel('SNR (dB)')
+
+    img = ax2.imshow(new_power_array, aspect='auto', origin='lower', 
+                    cmap=plt.get_cmap('gnuplot2'), vmax=vmax, vmin=vmin)
+    ax2.set_title('Range-time plot')
+    ax2.set_ylabel('Range gate number')
+    ax2.set_xlabel('Record number (spans time)')
+
+    # extent=[x_lims[0], x_lims[1], y_lims[0], y_lims[1]], 
+
+    # Using datetimes as below can be misleading because it is just using
+    # a range and our sequences are not necessarily evenly spaced across 
+    # the time range. Not going to plot this way until a better method can
+    # be found.
+    # ax2.xaxis_date()
+    # date_format = mdates.DateFormatter('%H:%M:%S')
+    # ax2.xaxis.set_major_formatter(date_format)
+    # fig.autofmt_xdate()
+    # ax2.tick_params(axis='x', which='major', labelsize='15')
+    fig.colorbar(img, cax=cax2, label='SNR')
+    cax1.axis('off') 
+
+    ax2.get_shared_x_axes().join(ax1, ax2)
+    print(plot_filename)
+    plt.savefig(plot_filename)
+    plt.close() 
+
+    # try:
+    #     with h5py.File(acf_file, 'r') as f:
+    #         group_names = sorted(list(f.keys()))
+    # except RuntimeError:
+    #     print('FILE not read due to RuntimeError: {}'.format(acf_file))
+    #     return
+    # first_record_lags = deepdish.io.load(acf_file, group= '/' + group_names[0])['lags']
+    # lag_numbers = [lags[1] - lags[0] for lags in first_record_lags]
+
+    # for lag_index in range(0,len(lag_numbers)):
+    #     lag_number = lag_numbers[lag_index]
+    #     xcf_phases = []
+    #     for group_name in group_names:
+    #         record = deepdish.io.load(acf_file, group='/' + group_name)
+    #         xcf = record['xcfs'].reshape(record['correlation_dimensions'])
+    #         dimensions_len = len(record['correlation_dimensions'])
+     
+    #         beam_index=0
+    #         lag = xcf[beam_index,:,lag_index] # this beam, all ranges lag 
+    #         xcf_phase = np.angle(lag, deg=True) # degrees
+    #         xcf_phases.append(xcf_phase)
+        
+    #     xcf_to_plot = np.transpose(np.array(xcf_phases, dtype=np.float32))
+        
+    #     fig, ax = plt.subplots(figsize=(32,16)) 
+    #     img = ax.imshow(xcf_to_plot, aspect='auto', origin='lower', cmap=plt.get_cmap('gnuplot2'))
+    #     fig.colorbar(img)
+        
+    #     basename = acf_file.split('/')[-1]
+    #     time_of_plot = '.'.join(basename.split('.')[0:6])
+    #     plotname = time_of_plot + '.lagind' + str(lag_index) + 'xcfphase.png'
+    #     ax.set_title(time_of_plot + ' Lag index {}, lag num {}'.format(lag_index, lag_number))
+    #     print(plotname)
+    #     plt.savefig(plotname)
+    #     plt.close()
+
+
 def plot_antennas_range_time(antennas_iq_file, antenna_nums=None, 
     num_processes=3, vmax=40.0, vmin=10.0, start_sample=0, end_sample=70):
     """ 
@@ -292,14 +422,14 @@ def plot_arrays_range_time(bfiq_file, beam_nums=None, num_processes=3,
     if beam_nums is None:
         # arrays['beam_nums'] is of shape num_records x max_num_beams
         # Note we do not want to include appended zeroes in the unique calc.
-        all_beams = np.empty(0)
+        all_beams = np.empty(0, dtype=uint32)
         for record_num in range(0, num_records):
             num_beams_in_record = int(arrays['num_beams'][record_num])
             all_beams = np.concatenate((all_beams, arrays['beam_nums'][
                 record_num,:num_beams_in_record]))
         beam_names = np.unique(all_beams)
     else:
-        beam_names = beam_nums
+        beam_names = np.array(beam_nums, dtype=uint32)
 
     arg_tuples = []
     print(bfiq_file)
@@ -329,7 +459,7 @@ def plot_arrays_range_time(bfiq_file, beam_nums=None, num_processes=3,
 
         for array_num, array_name in enumerate(arrays['antenna_arrays_order']):
             plot_filename = directory_name + '/' + time_of_plot + \
-                       '.{}_beam{}_{}_{}.png'.format(array_name, beam_name,
+                       '.{}_beam{}_{}_{}.png'.format(array_name, str(beam_name),
                                             start_sample, end_sample)
             descriptor = array_name + ' beam ' + str(beam_name)
             arg_tuples.append((copy.copy(beam_arrays_data[:,array_num,:,:]), 
@@ -379,100 +509,140 @@ def plot_arrays_range_time(bfiq_file, beam_nums=None, num_processes=3,
     #     print('FILE {} beam {} main array snr: {}'.format(bfiq_file,beam,snr))
 
 
-def plot_lag_xcfphase(acf_file):
+def plot_rawacf_lag_pwr(rawacf_file, beam_nums=None, lag_nums=[0], 
+    datasets=['acfs', 'intf_acfs', 'xcfs'], num_processes=3, vmax=40.0, 
+    vmin=10.0):
     """
     Plots the lag xcf phase of rawacf.hdf5 file, lag number found via lag_index.
-    """
-
-    try:
-        with h5py.File(acf_file, 'r') as f:
-            group_names = sorted(list(f.keys()))
-    except RuntimeError:
-        print('FILE not read due to RuntimeError: {}'.format(acf_file))
-        return
-    first_record_lags = deepdish.io.load(acf_file, group= '/' + group_names[0])['lags']
-    lag_numbers = [lags[1] - lags[0] for lags in first_record_lags]
-
-    for lag_index in range(0,len(lag_numbers)):
-        lag_number = lag_numbers[lag_index]
-        xcf_phases = []
-        for group_name in group_names:
-            record = deepdish.io.load(acf_file, group='/' + group_name)
-            xcf = record['xcfs'].reshape(record['correlation_dimensions'])
-            dimensions_len = len(record['correlation_dimensions'])
-     
-            beam_index=0
-            lag = xcf[beam_index,:,lag_index] # this beam, all ranges lag 
-            xcf_phase = np.angle(lag, deg=True) # degrees
-            xcf_phases.append(xcf_phase)
-        
-        xcf_to_plot = np.transpose(np.array(xcf_phases, dtype=np.float32))
-        
-        fig, ax = plt.subplots(figsize=(32,16)) 
-        img = ax.imshow(xcf_to_plot, aspect='auto', origin='lower', cmap=plt.get_cmap('gnuplot2'))
-        fig.colorbar(img)
-        
-        basename = acf_file.split('/')[-1]
-        time_of_plot = '.'.join(basename.split('.')[0:6])
-        plotname = time_of_plot + '.lagind' + str(lag_index) + 'xcfphase.png'
-        ax.set_title(time_of_plot + ' Lag index {}, lag num {}'.format(lag_index, lag_number))
-        print(plotname)
-        plt.savefig(plotname)
-        plt.close()
-
-
-def plot_lag_pwr(acf_file):
-    """
-    Plots the lag pwer of rawacf.hdf5 file, lag number found via lag_index.
-    """
-
-    try:
-        with h5py.File(acf_file, 'r') as f:
-            group_names = sorted(list(f.keys()))
-    except RuntimeError:
-        print('FILE not read due to RuntimeError: {}'.format(acf_file))
-        return
-    first_record_lags = deepdish.io.load(acf_file, group= '/' + group_names[0])['lags']
-    lag_numbers = [lags[1] - lags[0] for lags in first_record_lags]
-
-    #lag_indices = range(0,len(lag_numbers))
-    lag_indices = [0]
-    for lag_index in lag_indices:
-        lag_number = lag_numbers[lag_index]
-        lag_powers = []
-        for group_name in group_names:
-            record = deepdish.io.load(acf_file, group='/' + group_name)
-            try:
-                acf = record['main_acfs'].reshape(record['correlation_dimensions'])
-                dimensions_len = len(record['correlation_dimensions'])
-            except (KeyError, AttributeError):
-                if record['main_acfs'] is not None: # not None
-                    acf = record['main_acfs'].reshape([75,-1])   
-                    dimensions_len = 2
-                else:
-                    return       
-     
-            if dimensions_len == 3:
-                beam_index=0
-                lag = acf[beam_index,:,lag_index] # this beam, all ranges lag 
-                lag_power = 10*np.log10(lag.real**2 + lag.imag**2)
-                lag_powers.append(lag_power)
-            else:
-                lag = acf[:,lag_index] # this beam, all ranges lag 0
-                lag_power = 10*np.log10(lag.real**2 + lag.imag**2)
-                lag_powers.append(lag_power)  
     
-        lagpwr = np.transpose(np.array(lag_powers, dtype=np.float32))
+    Plots averaged range time data from echoes received for given beams
+    and given lags (default all available beams lag0). Can plot all beams 
+    and all lags. 
+
+    Gets the samples between start_sample and end_sample for every
+    sequence in the file, calculates their power, and plots these sequences side
+    by side. Uses gnuplot2 color map. 
+
+    Parameters 
+    ----------
+    rawacf_file
+        The filename that you are plotting data from for plot title. The file
+        should be array restructured.
+    beam_nums
+        The list of beam numbers to plot. Default None which allows all beams 
+        available in the file to be plotted.
+    lag_nums
+        The list of lag numbers to plot. Default [0] to plot only lag0pwr.
+        lag_nums=None allows all lags available in the file to be plotted.
+    datasets
+        The datasets to plot. Default all (acfs, intf_acfs, and xcfs). 
+    num_processes
+        The number of processes to use to plot the data from the beam_nums
+        and lag_nums
+    vmax
+        Max power for the color bar on the plot. Default 60 dB.
+    vmin
+        Min power for the color bar on the plot.  Default 10 dB. 
+    """
+
+    reader = BorealisRead(rawacf_file, 'rawacf', 
+                          borealis_file_structure='array')
+    arrays = reader.arrays
+
+    (num_records, max_num_beams, num_ranges, num_lags) = \
+        arrays['main_acfs'].shape
+    max_num_sequences = arrays['sqn_timestamps'].shape[1]
+
+    basename = os.path.basename(rawacf_file)
+    directory_name = os.path.dirname(rawacf_file)
+    time_of_plot = '.'.join(basename.split('.')[0:6])
+
+    # find the number of unique beams and their azimuths
+    if beam_nums is None:
+        # arrays['beam_nums'] is of shape num_records x max_num_beams
+        # Note we do not want to include appended zeroes in the unique calc.
+        all_beams = np.empty(0)
+        for record_num in range(0, num_records):
+            num_beams_in_record = int(arrays['num_beams'][record_num])
+            all_beams = np.concatenate((all_beams, arrays['beam_nums'][
+                record_num,:num_beams_in_record]))
+        beam_names = np.unique(all_beams)
+    else:
+        beam_names = beam_nums
+
+    lag_names = arrays['lags']
+    all_lag_nums = [lag[1] - lag[0] for lag in list(arrays['lags'])]
+    if lag_nums is None:
+        lag_nums = all_lag_nums
+        lag_indices = list(range(len(lag_nums)))
+    else:
+        lag_indices = []
+        for lag_num in lag_nums:
+            try:
+                lag_indices.append(all_lag_nums.index(lag_num))
+            except ValueError as e:
+                raise ValueError('Lag number {} is not found in the file'
+                                 .format(lag_num))
+
+    for dataset in datasets:
+        if dataset not in ['main_acfs', 'intf_acfs', 'xcfs']:
+            raise ValueError('Dataset not available in rawacf file: {}'
+                             .format(dataset))
         
-        fig, ax = plt.subplots(figsize=(32,16)) 
-        img = ax.imshow(lagpwr, aspect='auto', origin='lower', cmap=plt.get_cmap('gnuplot2'))
-        fig.colorbar(img)
-        
-        basename = acf_file.split('/')[-1]
-        time_of_plot = '.'.join(basename.split('.')[0:6])
-        plotname = time_of_plot + '.lagind' + str(lag_index) + 'pwr.png'
-        ax.set_title(time_of_plot + ' Lag index {}, lag num {}'.format(lag_index, lag_number))
-        print(plotname)
-        plt.savefig(plotname)
-        plt.close()
+
+    arg_tuples = []
+    print(rawacf_file)
+
+    for beam_name in beam_names:
+        # find only the data with this beam name
+        # data will be num_records avail (with this beam and lag number)
+        # to plot x num_ranges
+        beam_timestamps_data = np.empty((0,max_num_sequences))
+        for lag_index, lag_num in zip(lag_indices, lag_nums):
+            beam_lag_dict = {}
+            for dataset in datasets:
+                beam_lag_dict[dataset] = np.empty(0, num_ranges)
+            for record_num in range(0, num_records):
+                if beam_name in arrays['beam_nums'][record_num]:
+                    beam_index = list(arrays['beam_nums'][record_num]).index(beam_name)
+                    beam_timestamps_data = np.concatenate((beam_timestamps_data,
+                        np.reshape(arrays['sqn_timestamps'][record_num], (1, 
+                            max_num_sequences))))
+                    for dataset in datasets:
+                        beam_lag_dict[dataset] = np.concatenate((
+                            beam_lag_dict[dataset],
+                            np.reshape(arrays[dataset][record_num,beam_index,
+                                :,lag_index], (1, num_ranges))))
+
+            for dataset in datasets:
+                plot_filename = directory_name + '/' + time_of_plot + \
+                           '.{}_beam{}_lag{}.png'.format(dataset, beam_name,
+                                                lag_num)
+                descriptor = dataset + ' beam ' + str(beam_name) + ' lag ' + \
+                    str(lag_num)
+                arg_tuples.append((copy.copy(beam_lag_dict[dataset]), 
+                    beam_timestamps_data, descriptor, plot_filename, vmax, 
+                    vmin))
+
+    jobs = []
+    plots_index = 0
+    plots_left = True
+    while plots_left:
+        for procnum in range(num_processes):
+            try:
+                plot_args = arg_tuples[plots_index + procnum]
+            except IndexError:
+                if plots_index + procnum == 0:
+                    print('No data found to plot')
+                    raise
+                plots_left = False
+                break
+            p = Process(target=plot_averaged_range_time_data, args=plot_args)
+            jobs.append(p)
+            p.start()
+
+        for proc in jobs:
+            proc.join()
+
+        plots_index += num_processes
 
