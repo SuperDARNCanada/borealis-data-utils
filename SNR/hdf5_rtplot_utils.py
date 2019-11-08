@@ -13,15 +13,22 @@ for testing.
 
 Functions
 ---------
-plot_range_time_data
+plot_unaveraged_range_time_data
     Used by the other functions. Takes the necessary arrays and plots 
     the data as a range-time and SNR plot. 
 plot_antennas_range_time
-    Uses plot_range_time_data and BorealisRead to read an array-structured 
-    antennas_iq file and plot the range-time data.
+    Uses plot_unaveraged_range_time_data and BorealisRead to read an 
+    array-structured antennas_iq file and plot the range-time data.
 plot_arrays_range_time
-    Uses plot_range_time_data and BorealisRead to read an array-structured 
-    bfiq file and plot the range-time data.
+    Uses plot_unaveraged_range_time_data and BorealisRead to read an 
+    array-structured bfiq file and plot the range-time data.
+
+plot_averaged_range_time_data
+    Used by other functions. Takes arrays of records x ranges and plots
+    a range-time and an SNR plot.
+plot_rawacf_lag_pwr 
+    Uses plot_averaged_range_time_data and BorealisRead to read an 
+    array-structured rawacf file and plot the range-time data.
 """
 import copy
 import datetime
@@ -128,101 +135,6 @@ def plot_unaveraged_range_time_data(data_array, num_sequences_array,
                                 end_sample))
     ax2.set_ylabel('Sample number (Range)')
     ax2.set_xlabel('Sequence number (spans time)')
-
-    # extent=[x_lims[0], x_lims[1], y_lims[0], y_lims[1]], 
-
-    # Using datetimes as below can be misleading because it is just using
-    # a range and our sequences are not necessarily evenly spaced across 
-    # the time range. Not going to plot this way until a better method can
-    # be found.
-    # ax2.xaxis_date()
-    # date_format = mdates.DateFormatter('%H:%M:%S')
-    # ax2.xaxis.set_major_formatter(date_format)
-    # fig.autofmt_xdate()
-    # ax2.tick_params(axis='x', which='major', labelsize='15')
-    fig.colorbar(img, cax=cax2, label='SNR')
-    cax1.axis('off') 
-
-    ax2.get_shared_x_axes().join(ax1, ax2)
-    print(plot_filename)
-    plt.savefig(plot_filename)
-    plt.close() 
-
-
-def plot_averaged_range_time_data(data_array, timestamps_array, 
-    dataset_descriptor, plot_filename, vmax, vmin):
-    """
-    Plots data as range time given an array with correct dimensions. Also
-    plots SNR by finding the ratio of max power in the sequence to average 
-    power of the 10 weakest range gates.
-
-    Note that this plots averaged data. 
-
-    Parameters
-    ----------
-    data_array
-        Array with shape num_records x num_samps (or num_ranges) for some 
-        correlations dataset.
-    timestamps_array
-        Array of timestamps with dimensions num_records x max_num_sequences.
-    dataset_descriptor
-        Name for dataset, to be included in plot title.
-    plot_filename
-        Where to save plot.
-    vmax
-        Max power for the color bar on the plot. 
-    vmin
-        Min power for the color bar on the plot. 
-    """
-    print(dataset_descriptor)
-    (num_records, num_samps) = data_array.shape
-
-    power_list = [] # list of lists of power
-    timestamps = [] # list of timestamps
-    noise_list = [] # list of (average of ten weakest ranges in sample range)
-    max_snr_list = [] # max power - noise (ave of 10 weakest ranges)
-    for record_num in range(num_records):
-        # get all ranges for this record
-        voltage_samples = data_array[record_num,:]
-        # get first timestamp in this record.
-        timestamp = float(timestamps_array[record_num, 0])
-        # power only. no averaging done. 
-        power = np.sqrt(abs(voltage_samples))
-        power_db = 10 * np.log10(power)
-        # set noise to ave of 10 lowest ranges
-        record_noise_db = 10 * np.log10(np.average(
-                            np.sort(power)[:10]))
-        power_list.append(power_db)
-        noise_list.append(record_noise_db)
-        max_snr_list.append(np.max(power_db[2:]) - record_noise_db)
-        timestamps.append(timestamp)
-
-    # want records x ranges
-    new_power_array = np.transpose(np.array(power_list))
-    
-    start_time = datetime.datetime.fromtimestamp(timestamps[0])
-    end_time = datetime.datetime.fromtimestamp(timestamps[-1])
-
-    # x_lims = mdates.date2num([start_time, end_time])
-    # y_lims = [start_sample, end_sample]
-
-    kw = {'width_ratios': [95,5]}
-    fig, ((ax1, cax1), (ax2, cax2)) = plt.subplots(2, 2, figsize=(32,16), 
-                gridspec_kw=kw)
-    fig.suptitle('{} PWR Time {} {} to {} UT vs Range'.format(
-            dataset_descriptor, start_time.strftime('%Y%m%d'), 
-            start_time.strftime('%H:%M:%S'), end_time.strftime('%H:%M:%S')))
-
-    # plot SNR and noise (10 weakest ranges average)
-    ax1.plot(range(len(max_snr_list)), max_snr_list)
-    ax1.set_title('Max SNR in record')
-    ax1.set_ylabel('SNR (dB)')
-
-    img = ax2.imshow(new_power_array, aspect='auto', origin='lower', 
-                    cmap=plt.get_cmap('gnuplot2'), vmax=vmax, vmin=vmin)
-    ax2.set_title('Range-time plot')
-    ax2.set_ylabel('Range gate number')
-    ax2.set_xlabel('Record number (spans time)')
 
     # extent=[x_lims[0], x_lims[1], y_lims[0], y_lims[1]], 
 
@@ -472,6 +384,101 @@ def plot_arrays_range_time(bfiq_file, beam_nums=None, num_processes=3,
     #     snr = np.max(main_power_array) - np.mean(main_power_array[:,10], axis=0) # use average of a close range as noise floor, see very little there (45 * 7 = 315 km range)
     #     print('Ave of array: {}'.format(np.average(main_power_array)))
     #     print('FILE {} beam {} main array snr: {}'.format(bfiq_file,beam,snr))
+
+
+def plot_averaged_range_time_data(data_array, timestamps_array, 
+    dataset_descriptor, plot_filename, vmax, vmin):
+    """
+    Plots data as range time given an array with correct dimensions. Also
+    plots SNR by finding the ratio of max power in the sequence to average 
+    power of the 10 weakest range gates.
+
+    Note that this plots averaged data. 
+
+    Parameters
+    ----------
+    data_array
+        Array with shape num_records x num_samps (or num_ranges) for some 
+        correlations dataset.
+    timestamps_array
+        Array of timestamps with dimensions num_records x max_num_sequences.
+    dataset_descriptor
+        Name for dataset, to be included in plot title.
+    plot_filename
+        Where to save plot.
+    vmax
+        Max power for the color bar on the plot. 
+    vmin
+        Min power for the color bar on the plot. 
+    """
+    print(dataset_descriptor)
+    (num_records, num_samps) = data_array.shape
+
+    power_list = [] # list of lists of power
+    timestamps = [] # list of timestamps
+    noise_list = [] # list of (average of ten weakest ranges in sample range)
+    max_snr_list = [] # max power - noise (ave of 10 weakest ranges)
+    for record_num in range(num_records):
+        # get all ranges for this record
+        voltage_samples = data_array[record_num,:]
+        # get first timestamp in this record.
+        timestamp = float(timestamps_array[record_num, 0])
+        # power only. no averaging done. 
+        power = np.sqrt(abs(voltage_samples))
+        power_db = 10 * np.log10(power)
+        # set noise to ave of 10 lowest ranges
+        record_noise_db = 10 * np.log10(np.average(
+                            np.sort(power)[:10]))
+        power_list.append(power_db)
+        noise_list.append(record_noise_db)
+        max_snr_list.append(np.max(power_db[2:]) - record_noise_db)
+        timestamps.append(timestamp)
+
+    # want records x ranges
+    new_power_array = np.transpose(np.array(power_list))
+    
+    start_time = datetime.datetime.fromtimestamp(timestamps[0])
+    end_time = datetime.datetime.fromtimestamp(timestamps[-1])
+
+    # x_lims = mdates.date2num([start_time, end_time])
+    # y_lims = [start_sample, end_sample]
+
+    kw = {'width_ratios': [95,5]}
+    fig, ((ax1, cax1), (ax2, cax2)) = plt.subplots(2, 2, figsize=(32,16), 
+                gridspec_kw=kw)
+    fig.suptitle('{} PWR Time {} {} to {} UT vs Range'.format(
+            dataset_descriptor, start_time.strftime('%Y%m%d'), 
+            start_time.strftime('%H:%M:%S'), end_time.strftime('%H:%M:%S')))
+
+    # plot SNR and noise (10 weakest ranges average)
+    ax1.plot(range(len(max_snr_list)), max_snr_list)
+    ax1.set_title('Max SNR in record')
+    ax1.set_ylabel('SNR (dB)')
+
+    img = ax2.imshow(new_power_array, aspect='auto', origin='lower', 
+                    cmap=plt.get_cmap('gnuplot2'), vmax=vmax, vmin=vmin)
+    ax2.set_title('Range-time plot')
+    ax2.set_ylabel('Range gate number')
+    ax2.set_xlabel('Record number (spans time)')
+
+    # extent=[x_lims[0], x_lims[1], y_lims[0], y_lims[1]], 
+
+    # Using datetimes as below can be misleading because it is just using
+    # a range and our sequences are not necessarily evenly spaced across 
+    # the time range. Not going to plot this way until a better method can
+    # be found.
+    # ax2.xaxis_date()
+    # date_format = mdates.DateFormatter('%H:%M:%S')
+    # ax2.xaxis.set_major_formatter(date_format)
+    # fig.autofmt_xdate()
+    # ax2.tick_params(axis='x', which='major', labelsize='15')
+    fig.colorbar(img, cax=cax2, label='SNR')
+    cax1.axis('off') 
+
+    ax2.get_shared_x_axes().join(ax1, ax2)
+    print(plot_filename)
+    plt.savefig(plot_filename)
+    plt.close() 
 
 
 def plot_rawacf_lag_pwr(rawacf_file, beam_nums=None, lag_nums=[0], 
