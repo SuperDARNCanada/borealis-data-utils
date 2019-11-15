@@ -108,8 +108,8 @@ def plot_unaveraged_range_time_data(data_array, num_sequences_array,
             timestamps.append(float(timestamp))
     power_array = np.array(power_list)
     
-    start_time = datetime.datetime.fromtimestamp(timestamps[0])
-    end_time = datetime.datetime.fromtimestamp(timestamps[-1])
+    start_time = datetime.datetime.utcfromtimestamp(timestamps[0])
+    end_time = datetime.datetime.utcfromtimestamp(timestamps[-1])
 
     # x_lims = mdates.date2num([start_time, end_time])
     # y_lims = [start_sample, end_sample]
@@ -437,8 +437,8 @@ def plot_averaged_range_time_data(data_array, timestamps_array,
     # want records x ranges
     new_power_array = np.transpose(np.array(power_list))
     
-    start_time = datetime.datetime.fromtimestamp(timestamps[0])
-    end_time = datetime.datetime.fromtimestamp(timestamps[-1])
+    start_time = datetime.datetime.utcfromtimestamp(timestamps[0])
+    end_time = datetime.datetime.utcfromtimestamp(timestamps[-1])
 
     # x_lims = mdates.date2num([start_time, end_time])
     # y_lims = [start_sample, end_sample]
