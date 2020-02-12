@@ -291,8 +291,8 @@ def print_gaps(gaps_dict, first_timestamp, last_timestamp):
         gaps = gaps_dict[day]
         if gaps:  # not empty
             for (gap_start, gap_end) in gaps:
-                gap_start_time = datetime.datetime.utcfromtimestamp(float(gap_start)/1000)
-                gap_end_time = datetime.datetime.utcfromtimestamp(float(gap_end)/1000)
+                gap_start_time = datetime.datetime.utcfromtimestamp(float(gap_start))
+                gap_end_time = datetime.datetime.utcfromtimestamp(float(gap_end))
                 gap_duration = gap_end_time - gap_start_time
                 duration = gap_duration.total_seconds()
                 duration_min = round(duration/60.0, 1)
@@ -383,8 +383,10 @@ if __name__ == '__main__':
                 except IndexError:
                     if filename_index + procnum == 0:
                         print('No files found for this day!')
+                        files_this_day = False
                     files_left = False
                     break
+                files_this_day = True
                 p = Process(target=get_record_timestamps, args=(filename, filename_dict, filetype, file_structure))
                 #p = Process(target=check_for_gaps_in_file, args=(filename, gap_spacing, gaps_dict, file_duration_dict))
                 jobs.append(p)
@@ -395,20 +397,21 @@ if __name__ == '__main__':
 
             filename_index += num_processes
 
-        record_dict[one_day] = filename_dict
-
-        timestamps_dict[one_day] = combine_timestamp_lists(record_dict[one_day])
-        gaps_dict[one_day] = check_for_gaps_between_records(timestamps_dict[one_day], gap_spacing)
+        if files_this_day:
+            record_dict[one_day] = filename_dict
+            timestamps_dict[one_day] = combine_timestamp_lists(record_dict[one_day])
+            gaps_dict[one_day] = check_for_gaps_between_records(timestamps_dict[one_day], gap_spacing)
+            print(gaps_dict[one_day])
 
     # now that gaps_dict is entirely filled with each day in the range, find gaps between days
     gaps_dict = check_for_gaps_between_days(timestamps_dict, gap_spacing, gaps_dict)
 
     sorted_days = sorted(timestamps_dict.keys())
-
+    print(sorted_days)
     # first timestamp is first day's first timestamp
-    first_timestamp = datetime.datetime.utcfromtimestamp(float(sorted(timestamps_dict[sorted_days[0]])[0])/1000)
+    first_timestamp = datetime.datetime.utcfromtimestamp(float(sorted(timestamps_dict[sorted_days[0]])[0]))
     # last timestamp is last day's last timestamp
-    last_timestamp = datetime.datetime.utcfromtimestamp(float(sorted(timestamps_dict[sorted_days[-1]])[-1])/1000)
+    last_timestamp = datetime.datetime.utcfromtimestamp(float(sorted(timestamps_dict[sorted_days[-1]])[-1]))
     print('GAPS BETWEEN {} and {}:'.format(first_timestamp.strftime('%Y%m%d %H:%M:%S'), last_timestamp.strftime('%Y%m%d %H:%M:%S')))
     print_gaps(gaps_dict, first_timestamp, last_timestamp)
 
