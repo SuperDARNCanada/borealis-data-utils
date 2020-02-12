@@ -4,52 +4,55 @@
 """
 This script is used to find gaps in Borealis data files.
 
+This script must be run from a virtualenv with pydarn installed.
+
 This script should be piped to a file gaps.md or similar.
 
 This script generates text in a markdown table format. The following
-command line call can be used to generate a docx table from 
+command line call can be used to generate a docx table from
 the printed output:
 
 pandoc -o output_file.docx -f markdown -t docx input_file.md
 
-Future Work
------------
-Update to use pydarn BorealisRead for getting the records.
-
 """
 
-
-import sys
-import os
-import math
-import numpy as np
+import argparse
+import bz2
 import datetime
 import deepdish
-import bz2
 import glob
+import math
+import numpy as np
+import os
+import subprocess
+import sys
 import time
+
 from multiprocessing import Pool, Queue, Manager, Process
-import argparse
+
+import pydarn
+
 
 def usage_msg():
     """
     Return the usage message for this process.
-     
+
     This is used if a -h flag or invalid arguments are provided.
-    
+
     Returns
-    ------- 
+    -------
     usage_message: str
-        The usage message on how to use this 
+        The usage message on how to use this
     """
 
     usage_message = """ borealis_gaps.py [-h] data_dir start_day end_day
-    
-    Pass in the data directory that you want to check for borealis gaps. This script uses 
-    multiprocessing to check for gaps in the files of each day and gaps between the days. 
 
-    The data directory passed in should have within it multiple directories named YYYYMMDD
-    for a day's worth of data that is held there.
+    Pass in the raw data directory that you want to check for borealis gaps. This script uses
+    multiprocessing to check for gaps in the files of each day and gaps between the days.
+
+    The data directory passed in should have within it multiple directories named YYYY and within
+    that directory, directories labelled MM with all available data from that month being
+    held there.
     """
 
     return usage_message
@@ -57,10 +60,12 @@ def usage_msg():
 
 def borealis_gaps_parser():
     parser = argparse.ArgumentParser(usage=usage_msg())
-    parser.add_argument("data_dir", help="Path to the directory that holds the day directories "
-                                         "containing *[filetype].hdf5.site.bz2 files.")
-    parser.add_argument("start_day", help="First day directory to check, given as YYYYMMDD.")
-    parser.add_argument("end_day", help="Last day directory to check, given as YYYYMMDD.")
+    parser.add_argument("data_dir", help="Path to the directory that holds any directory structure which within "
+                                         "contains all *[filetype].hdf5 or .hdf5.site.bz2 files from the dates "
+                                         "you wish to get downtimes. Array files (.hdf5) should exist if array is "
+                                         "the specified file structure, otherwise .site should exist.")
+    parser.add_argument("start_day", help="First day to check, given as YYYYMMDD.")
+    parser.add_argument("end_day", help="Last day to check, given as YYYYMMDD.")
     parser.add_argument("--filetype", help="The filetype that you want to check gaps in (bfiq or "
                                            "rawacf typical). Default 'rawacf'")
     parser.add_argument("--gap_spacing", help="The gap spacing that you wish to check the file"
@@ -68,7 +73,7 @@ def borealis_gaps_parser():
     parser.add_argument("--num_processes", help="The number of processes to use in the multiprocessing,"
                                                 " default 4.")
     parser.add_argument("--file_structure", help="The file structure to use when reading the files, "
-                                                " default 'site' but can also be 'array'")
+                                                " default 'array' but can also be 'site'")
     return parser
 
 
@@ -96,10 +101,10 @@ def decompress_bz2(filename):
     return newfilepath
 
 
-def get_record_timestamps(filename, record_dict, file_structure='site'):
+def get_record_timestamps(filename, record_dict, filetype, file_structure='array'):
     """
-    Get the record timestamps from a file. These are what are used 
-    to determine the gaps. 
+    Get the record timestamps from a file. These are what are used
+    to determine the gaps.
 
     Also decompresses if the file is a bzip2 file before the read.
 
@@ -109,36 +114,41 @@ def get_record_timestamps(filename, record_dict, file_structure='site'):
         Filename to retrieve timestamps from.
     record_dict
         record_dictionary to append the entry filename: timestamps list
-    file_structure 
-        File structure of file provided. Default site, but can also
-        be array structured. Determines how to retrieve the timestamps
+    file_structure
+        File structure of file provided. Default array, but can also
+        be site structured. Determines how to retrieve the timestamps
         of the records.
     """
     print('Getting timestamps from file : ' + filename)
-    if os.path.basename(filename).split('.')[-1] in ['bz2', 'bzip2']:
-        borealis_hdf5_file = decompress_bz2(filename)
-        bzip2 = True
-    else:
-        borealis_hdf5_file = filename
-        bzip2 = False
-
     if file_structure == 'site':
-        records = sorted(deepdish.io.load(borealis_hdf5_file).keys())
+        if os.path.basename(filename).split('.')[-1] in ['bz2', 'bzip2']:
+            borealis_hdf5_file = decompress_bz2(filename)
+            bzip2 = True
+        else:
+            borealis_hdf5_file = filename
+            bzip2 = False
+
+        reader = pydarn.BorealisRead(filename, filetype, file_structure)
+        get all records first timestamp
+        records = []
+        for record_name in reader.record_names:
+            records.append(reader.records[record_name]['sqn_timestamps'][0])
+
+        if bzip2:
+            if borealis_hdf5_file.split('.')[-1] in ['bz2', 'bzip2']:
+                print('Warning: attempted remove of original bzip file {}'.format(borealis_hdf5_file))
+            else:
+                os.remove(borealis_hdf5_file)
     elif file_structure == 'array':
         # get first timestamp per record in sqn_timestamps array of num_records x num_sequences
-        records = sorted(deepdish.io.load(borealis_hdf5_file)['sqn_timestamps'][:0])
+        reader = pydarn.BorealisRead(filename, filetype, file_structure)
+        records = reader['sqn_timestamps'][:,0] # all records first timestamp
     else:
         raise Exception('Invalid file structure provided')
 
-    inner_dict1 = record_dict 
+    inner_dict1 = record_dict
     inner_dict1[filename] = records
     record_dict = inner_dict1 # reassign
-
-    if bzip2:
-        if borealis_hdf5_file.split('.')[-1] in ['bz2', 'bzip2']:
-            print('Warning: attempted remove of original bzip file {}'.format(borealis_hdf5_file))
-        else:
-            os.remove(borealis_hdf5_file)
 
 
 def combine_timestamp_lists(record_dict):
@@ -175,7 +185,7 @@ def check_for_gaps_between_records(timestamp_list, gap_spacing):
     Parameters
     ----------
     timestamp_list
-        List of timestamps to check for gaps within, typically given 
+        List of timestamps to check for gaps within, typically given
         for a single day.
     gap_spacing
         Minimum spacing allowed between records, given in seconds.
@@ -183,7 +193,7 @@ def check_for_gaps_between_records(timestamp_list, gap_spacing):
     Returns
     -------
     gaps_list
-        List of gaps, where the gap is a tuple of the first timestamp and 
+        List of gaps, where the gap is a tuple of the first timestamp and
         the following timestamp where the gap occurred ie.
         (timestamp1, timestamp2)
     """
@@ -211,7 +221,7 @@ def check_for_gaps_between_days(timestamps_dict, gap_spacing, gaps_dict):
 
     Parameters
     ----------
-    timestamps_dict 
+    timestamps_dict
         provided as day: list of timestamps for records in that day
     gap_spacing
         Minimum spacing allowed between records, given in seconds.
@@ -231,7 +241,7 @@ def check_for_gaps_between_days(timestamps_dict, gap_spacing, gaps_dict):
             continue # skip first one
         sorted_timestamps = sorted(timestamps_dict[day])
         # last record integration start time in the first file.
-        previous_end_time = datetime.datetime.utcfromtimestamp(float(previous_last_record)/1000) 
+        previous_end_time = datetime.datetime.utcfromtimestamp(float(previous_last_record)/1000)
         first_record = sorted_timestamps[0]
         last_record = sorted_timestamps[-1]
         start_time = datetime.datetime.utcfromtimestamp(float(first_record)/1000)
@@ -270,7 +280,7 @@ def print_gaps(gaps_dict, first_timestamp, last_timestamp):
 
     strf_format = '%Y%m%d %H:%M:%S'
 
-    # need to print a new line at start of file otherwise markdown 
+    # need to print a new line at start of file otherwise markdown
     # table won't generate.
     print(' ')
     print('| START TIME | END TIME | DURATION (min) | CAUSE |')
@@ -287,7 +297,7 @@ def print_gaps(gaps_dict, first_timestamp, last_timestamp):
                 duration = gap_duration.total_seconds()
                 duration_min = round(duration/60.0, 1)
                 print('| ' + gap_start_time.strftime(strf_format) + ' | '  +
-                      gap_end_time.strftime(strf_format) + ' | ' + 
+                      gap_end_time.strftime(strf_format) + ' | ' +
                       str(duration_min) + ' |   |')
                 duration_dict[day] = duration_min
 
@@ -324,23 +334,25 @@ if __name__ == '__main__':
         num_processes = args.num_processes
 
     if args.file_structure is None:
-        file_structure = 'site'
+        file_structure = 'array'
+        file_extension = '.hdf5'
     else:
         file_structure = args.file_structure
+        file_extension = '.hdf5.site.bz2'
 
     files = []
-    
+
     data_dir = args.data_dir
     if data_dir[-1] != '/':
         data_dir += '/'
 
     start_day = datetime.datetime(year=int(args.start_day[0:4]), month=int(args.start_day[4:6]), day=int(args.start_day[6:8]))
-    end_day = datetime.datetime(year=int(args.end_day[0:4]), month=int(args.end_day[4:6]), day=int(args.end_day[6:8]))    
+    end_day = datetime.datetime(year=int(args.end_day[0:4]), month=int(args.end_day[4:6]), day=int(args.end_day[6:8]))
 
     # this dictionary will be day: list of sorted timestamps in the day
     timestamps_dict = {}
 
-    # this dictionary will be day: {dict of filename: list of timestamps in file}
+    # this dictionary will be {day: {filename: list of timestamps in file, filename2: list of timestamps in file}}
     record_dict = {}
 
     # this dictionary will be day: [list of gaps in day, or between previous running day and this day]
@@ -349,10 +361,13 @@ if __name__ == '__main__':
     for one_day in daterange(start_day, end_day):
         # Get all the filenames and then all the timestamps for this day.
         print(one_day.strftime("%Y%m%d"))
-        if os.path.isdir(data_dir + one_day.strftime("%Y%m%d")):
-            files = glob.glob(data_dir + one_day.strftime("%Y%m%d") + '/*.' + filetype + '*')
-        else:
-            continue
+
+        files = subprocess.check_output(['find', data_dir, '-name',
+                    one_day.strftime("%Y%m%d")+'*.' + filetype + '*' + file_extension]).splitlines()
+        # if os.path.isdir(data_dir + one_day.strftime("%Y%m%d")):
+        #     files = glob.glob(data_dir + one_day.strftime("%Y%m%d") + '/*.' + filetype + '*')
+        # else:
+        #     continue
 
         jobs = []
         files_left = True
@@ -364,14 +379,14 @@ if __name__ == '__main__':
         while files_left:
             for procnum in range(num_processes):
                 try:
-                    filename = files[filename_index + procnum]
+                    filename = files[filename_index + procnum].decode('ascii')
                 except IndexError:
                     if filename_index + procnum == 0:
                         print('No files found to check!')
                         raise
                     files_left = False
                     break
-                p = Process(target=get_record_timestamps, args=(filename, filename_dict, file_structure))
+                p = Process(target=get_record_timestamps, args=(filename, filename_dict, filetype, file_structure))
                 #p = Process(target=check_for_gaps_in_file, args=(filename, gap_spacing, gaps_dict, file_duration_dict))
                 jobs.append(p)
                 p.start()
@@ -382,10 +397,10 @@ if __name__ == '__main__':
             filename_index += num_processes
 
         record_dict[one_day] = filename_dict
-        
+
         timestamps_dict[one_day] = combine_timestamp_lists(record_dict[one_day])
         gaps_dict[one_day] = check_for_gaps_between_records(timestamps_dict[one_day], gap_spacing)
-    
+
     # now that gaps_dict is entirely filled with each day in the range, find gaps between days
     gaps_dict = check_for_gaps_between_days(timestamps_dict, gap_spacing, gaps_dict)
 
