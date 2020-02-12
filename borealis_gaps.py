@@ -129,7 +129,7 @@ def get_record_timestamps(filename, record_dict, filetype, file_structure='array
             bzip2 = False
 
         reader = pydarn.BorealisRead(filename, filetype, file_structure)
-        get all records first timestamp
+        # get all records first timestamp
         records = []
         for record_name in reader.record_names:
             records.append(reader.records[record_name]['sqn_timestamps'][0])
@@ -142,7 +142,7 @@ def get_record_timestamps(filename, record_dict, filetype, file_structure='array
     elif file_structure == 'array':
         # get first timestamp per record in sqn_timestamps array of num_records x num_sequences
         reader = pydarn.BorealisRead(filename, filetype, file_structure)
-        records = reader['sqn_timestamps'][:,0] # all records first timestamp
+        records = reader.arrays['sqn_timestamps'][:,0] # all records first timestamp
     else:
         raise Exception('Invalid file structure provided')
 
