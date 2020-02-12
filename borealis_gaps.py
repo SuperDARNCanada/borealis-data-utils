@@ -382,8 +382,7 @@ if __name__ == '__main__':
                     filename = files[filename_index + procnum].decode('ascii')
                 except IndexError:
                     if filename_index + procnum == 0:
-                        print('No files found to check!')
-                        raise
+                        print('No files found for this day!')
                     files_left = False
                     break
                 p = Process(target=get_record_timestamps, args=(filename, filename_dict, filetype, file_structure))
