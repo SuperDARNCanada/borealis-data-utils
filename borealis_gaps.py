@@ -206,9 +206,9 @@ def check_for_gaps_between_records(timestamp_list, gap_spacing):
     for record_num, record in enumerate(sorted_list):
         if record_num == len(sorted_list) - 1:
             continue
-        this_record = datetime.datetime.utcfromtimestamp(float(record)/1000)
+        this_record = datetime.datetime.utcfromtimestamp(float(record))
         expected_next_record = this_record + datetime.timedelta(seconds=float(gap_spacing))
-        if datetime.datetime.utcfromtimestamp(float(sorted_list[record_num + 1])/1000) > expected_next_record:
+        if datetime.datetime.utcfromtimestamp(float(sorted_list[record_num + 1])) > expected_next_record:
             # append the gap to the dictionary list where key = filename,
             # value = list of gaps. Gaps are lists of (gap_start, gap_end)
             gaps_list = gaps_list + [(record, sorted_list[record_num + 1])]
@@ -243,11 +243,11 @@ def check_for_gaps_between_days(timestamps_dict, gap_spacing, gaps_dict):
             continue # skip first one
         sorted_timestamps = sorted(timestamps_dict[day])
         # last record integration start time in the first file.
-        previous_end_time = datetime.datetime.utcfromtimestamp(float(previous_last_record)/1000)
+        previous_end_time = datetime.datetime.utcfromtimestamp(float(previous_last_record))
         first_record = sorted_timestamps[0]
         last_record = sorted_timestamps[-1]
-        start_time = datetime.datetime.utcfromtimestamp(float(first_record)/1000)
-        end_time = datetime.datetime.utcfromtimestamp(float(last_record)/1000)
+        start_time = datetime.datetime.utcfromtimestamp(float(first_record))
+        end_time = datetime.datetime.utcfromtimestamp(float(last_record))
         if start_time > previous_end_time + datetime.timedelta(seconds=float(gap_spacing)):
             # append gap to this day's list of gaps. Dict key is day, list is list of (gap_start, gap_end)
             if day not in gaps_dict.keys():
@@ -293,6 +293,7 @@ def print_gaps(gaps_dict, first_timestamp, last_timestamp, print_filename):
 
         duration_dict = {}
         for day in sorted(gaps_dict.keys()):
+            duration_dict[day] = 0
             gaps = gaps_dict[day]
             if gaps:  # not empty
                 for (gap_start, gap_end) in gaps:
@@ -304,7 +305,7 @@ def print_gaps(gaps_dict, first_timestamp, last_timestamp, print_filename):
                     print('| ' + gap_start_time.strftime(strf_format) + ' | '  +
                       gap_end_time.strftime(strf_format) + ' | ' +
                       str(duration_min) + ' |   |', file=f)
-                    duration_dict[day] = duration_min
+                    duration_dict[day] += duration_min
 
         # end table, print new line
         print(' ', file=f)
@@ -339,7 +340,7 @@ if __name__ == '__main__':
     if args.num_processes is None:
         num_processes = 4
     else:
-        num_processes = args.num_processes
+        num_processes = int(args.num_processes)
 
     if args.file_structure is None:
         file_structure = 'array'
