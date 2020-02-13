@@ -328,7 +328,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     if args.gap_spacing is None:
-        gap_spacing = 7 # s
+        gap_spacing = 15 # s
     else:
         gap_spacing = float(args.gap_spacing)
 
