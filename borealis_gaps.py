@@ -74,6 +74,8 @@ def borealis_gaps_parser():
                                                 " default 4.")
     parser.add_argument("--file_structure", help="The file structure to use when reading the files, "
                                                 " default 'array' but can also be 'site'")
+    parser.add_argument("--gaps_table_file", help="The pathname of the file to print the gaps table "
+                                                  "to, default is placed in $HOME/borealis_gaps/")
     return parser
 
 
@@ -263,7 +265,7 @@ def daterange(start_date, end_date):
         yield start_date + datetime.timedelta(n)
 
 
-def print_gaps(gaps_dict, first_timestamp, last_timestamp):
+def print_gaps(gaps_dict, first_timestamp, last_timestamp, print_filename):
     """
     Printer function for a dictionary of gaps. Prints a markdown
     table for easy integration into documents.
@@ -276,42 +278,48 @@ def print_gaps(gaps_dict, first_timestamp, last_timestamp):
         datetime of first timestamp in period of gaps
     last_timestamp
         datetime of last timestamp in period of gaps
+    print_filename
+        filename to print the gaps table to, in addition to the stdout.
     """
 
     strf_format = '%Y%m%d %H:%M:%S'
 
-    # need to print a new line at start of file otherwise markdown
-    # table won't generate.
-    print(' ')
-    print('| START TIME | END TIME | DURATION (min) | CAUSE |')
-    print('| --- | --- | ---:| --- |')
+    with open(print_filename, "a") as f:
+        print('GAPS BETWEEN {} and {}:'.format(first_timestamp.strftime(strf_format), last_timestamp.strftime(strf_format)), file=f)
+        # new line required for table to generate
+        print(' ', file=f)
+        print('| START TIME | END TIME | DURATION (min) | CAUSE |', file=f)
+        print('| --- | --- | ---:| --- |', file=f)
 
-    duration_dict = {}
-    for day in sorted(gaps_dict.keys()):
-        gaps = gaps_dict[day]
-        if gaps:  # not empty
-            for (gap_start, gap_end) in gaps:
-                gap_start_time = datetime.datetime.utcfromtimestamp(float(gap_start))
-                gap_end_time = datetime.datetime.utcfromtimestamp(float(gap_end))
-                gap_duration = gap_end_time - gap_start_time
-                duration = gap_duration.total_seconds()
-                duration_min = round(duration/60.0, 1)
-                print('| ' + gap_start_time.strftime(strf_format) + ' | '  +
+        duration_dict = {}
+        for day in sorted(gaps_dict.keys()):
+            gaps = gaps_dict[day]
+            if gaps:  # not empty
+                for (gap_start, gap_end) in gaps:
+                    gap_start_time = datetime.datetime.utcfromtimestamp(float(gap_start))
+                    gap_end_time = datetime.datetime.utcfromtimestamp(float(gap_end))
+                    gap_duration = gap_end_time - gap_start_time
+                    duration = gap_duration.total_seconds()
+                    duration_min = round(duration/60.0, 1)
+                    print('| ' + gap_start_time.strftime(strf_format) + ' | '  +
                       gap_end_time.strftime(strf_format) + ' | ' +
-                      str(duration_min) + ' |   |')
-                duration_dict[day] = duration_min
+                      str(duration_min) + ' |   |', file=f)
+                    duration_dict[day] = duration_min
 
-    # end table, print new line
+        # end table, print new line
+        print(' ', file=f)
+        total_duration_min = 0.0
+        for day, duration in duration_dict.items():
+            total_duration_min += duration
+        total_duration_hrs = round(total_duration_min/60.0, 1)
+        total_duration_days = round(total_duration_hrs/24.0, 1)
+        print('TOTAL DOWNTIME DURATION IN PERIOD from {} to {}: \n'.format(first_timestamp.strftime(strf_format), last_timestamp.strftime(strf_format)), file=f)
+        print('{} minutes\n'.format(total_duration_min), file=f)
+        print('{} hours\n'.format(total_duration_hrs), file=f)
+        print('{} days\n'.format(total_duration_days), file=f)
+
     print(' ')
-    total_duration_min = 0.0
-    for day, duration in duration_dict.items():
-        total_duration_min += duration
-    total_duration_hrs = round(total_duration_min/60.0, 1)
-    total_duration_days = round(total_duration_hrs/24.0, 1)
-    print('TOTAL DOWNTIME DURATION IN PERIOD from {} to {}: '.format(first_timestamp.strftime(strf_format), last_timestamp.strftime(strf_format)))
-    print('{} minutes'.format(total_duration_min))
-    print('{} hours'.format(total_duration_hrs))
-    print('{} days'.format(total_duration_days))
+    subprocess.call(['cat', print_filename])
 
 
 if __name__ == '__main__':
@@ -339,12 +347,19 @@ if __name__ == '__main__':
     else:
         file_structure = args.file_structure
         file_extension = '.hdf5.site.bz2'
-
-    files = []
-
+    
     data_dir = args.data_dir
     if data_dir[-1] != '/':
         data_dir += '/'
+
+    lowest_dir = data_dir.split('/')[-2]  # now has / at the end so must be second last element
+
+    if args.gaps_table_file is None:
+        print_filename = os.environ['HOME'] + '/borealis_gaps/' + args.start_day + '_' + args.end_day + '_' + lowest_dir + '_gaps.md'
+    else:
+        print_filename = gaps_table_file
+
+    files = []
 
     start_day = datetime.datetime(year=int(args.start_day[0:4]), month=int(args.start_day[4:6]), day=int(args.start_day[6:8]), tzinfo=datetime.timezone.utc)
     end_day = datetime.datetime(year=int(args.end_day[0:4]), month=int(args.end_day[4:6]), day=int(args.end_day[6:8]), tzinfo=datetime.timezone.utc)
@@ -426,6 +441,5 @@ if __name__ == '__main__':
     first_timestamp = datetime.datetime.utcfromtimestamp(float(sorted(timestamps_dict[sorted_days[0]])[0]))
     # last timestamp is last day's last timestamp
     last_timestamp = datetime.datetime.utcfromtimestamp(float(sorted(timestamps_dict[sorted_days[-1]])[-1]))
-    print('GAPS BETWEEN {} and {}:'.format(first_timestamp.strftime('%Y%m%d %H:%M:%S'), last_timestamp.strftime('%Y%m%d %H:%M:%S')))
-    print_gaps(gaps_dict, first_timestamp, last_timestamp)
+    print_gaps(gaps_dict, first_timestamp, last_timestamp, print_filename)
 
