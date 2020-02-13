@@ -259,7 +259,7 @@ def daterange(start_date, end_date):
     """
     Generator for days between start_date and end_date inclusive
     """
-    for n in range(int ((end_date - start_date).days)):
+    for n in range(int((end_date - start_date).days) + 1):
         yield start_date + datetime.timedelta(n)
 
 
@@ -346,8 +346,8 @@ if __name__ == '__main__':
     if data_dir[-1] != '/':
         data_dir += '/'
 
-    start_day = datetime.datetime(year=int(args.start_day[0:4]), month=int(args.start_day[4:6]), day=int(args.start_day[6:8]))
-    end_day = datetime.datetime(year=int(args.end_day[0:4]), month=int(args.end_day[4:6]), day=int(args.end_day[6:8]))
+    start_day = datetime.datetime(year=int(args.start_day[0:4]), month=int(args.start_day[4:6]), day=int(args.start_day[6:8]), tzinfo=datetime.timezone.utc)
+    end_day = datetime.datetime(year=int(args.end_day[0:4]), month=int(args.end_day[4:6]), day=int(args.end_day[6:8]), tzinfo=datetime.timezone.utc)
 
     # this dictionary will be day: list of sorted timestamps in the day
     timestamps_dict = {}
@@ -400,14 +400,28 @@ if __name__ == '__main__':
         if files_this_day:
             record_dict[one_day] = filename_dict
             timestamps_dict[one_day] = combine_timestamp_lists(record_dict[one_day])
-            gaps_dict[one_day] = check_for_gaps_between_records(timestamps_dict[one_day], gap_spacing)
-            print(gaps_dict[one_day])
+        
+        if one_day == start_day:
+            first_timestamp = start_day.timestamp()
+            if one_day in timestamps_dict.keys():
+                timestamps_dict[one_day].insert(0,first_timestamp)
+            else:
+                timestamps_dict[one_day] = [first_timestamp]
+        elif one_day == end_day:
+            last_timestamp = (end_day+datetime.timedelta(seconds=59, minutes=59, hours=23)).timestamp()
+            if one_day in timestamps_dict.keys():
+                timestamps_dict[one_day].append(last_timestamp)
+            else:
+                timestamps_dict[one_day] = [last_timestamp]
 
+        if one_day in timestamps_dict.keys(): # first or last day, or files were found for the day 
+            gaps_dict[one_day] = check_for_gaps_between_records(timestamps_dict[one_day], gap_spacing)
+            #print(gaps_dict[one_day])
+        
     # now that gaps_dict is entirely filled with each day in the range, find gaps between days
     gaps_dict = check_for_gaps_between_days(timestamps_dict, gap_spacing, gaps_dict)
 
     sorted_days = sorted(timestamps_dict.keys())
-    print(sorted_days)
     # first timestamp is first day's first timestamp
     first_timestamp = datetime.datetime.utcfromtimestamp(float(sorted(timestamps_dict[sorted_days[0]])[0]))
     # last timestamp is last day's last timestamp
