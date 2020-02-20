@@ -265,7 +265,7 @@ def daterange(start_date, end_date):
         yield start_date + datetime.timedelta(n)
 
 
-def print_gaps(gaps_dict, first_timestamp, last_timestamp, print_filename):
+def print_gaps(gaps_dict, first_timestamp, last_timestamp, gap_spacing, print_filename):
     """
     Printer function for a dictionary of gaps. Prints a markdown
     table for easy integration into documents.
@@ -278,6 +278,8 @@ def print_gaps(gaps_dict, first_timestamp, last_timestamp, print_filename):
         datetime of first timestamp in period of gaps
     last_timestamp
         datetime of last timestamp in period of gaps
+    gap_spacing
+        Gap spacing used, in s. 
     print_filename
         filename to print the gaps table to, in addition to the stdout.
     """
@@ -285,7 +287,7 @@ def print_gaps(gaps_dict, first_timestamp, last_timestamp, print_filename):
     strf_format = '%Y%m%d %H:%M:%S'
 
     with open(print_filename, "a") as f:
-        print('GAPS BETWEEN {} and {}:'.format(first_timestamp.strftime(strf_format), last_timestamp.strftime(strf_format)), file=f)
+        print('GAPS GREATER THAN {} s BETWEEN {} and {}:'.format(str(gap_spacing), first_timestamp.strftime(strf_format), last_timestamp.strftime(strf_format)), file=f)
         # new line required for table to generate
         print(' ', file=f)
         print('| START TIME | END TIME | DURATION (min) | CAUSE |', file=f)
@@ -442,5 +444,5 @@ if __name__ == '__main__':
     first_timestamp = datetime.datetime.utcfromtimestamp(float(sorted(timestamps_dict[sorted_days[0]])[0]))
     # last timestamp is last day's last timestamp
     last_timestamp = datetime.datetime.utcfromtimestamp(float(sorted(timestamps_dict[sorted_days[-1]])[-1]))
-    print_gaps(gaps_dict, first_timestamp, last_timestamp, print_filename)
+    print_gaps(gaps_dict, first_timestamp, last_timestamp, gap_spacing, print_filename)
 
