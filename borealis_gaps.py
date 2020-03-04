@@ -6,11 +6,9 @@ This script is used to find gaps in Borealis data files.
 
 This script must be run from a virtualenv with pydarn installed.
 
-This script should be piped to a file gaps.md or similar.
-
-This script generates text in a markdown table format. The following
-command line call can be used to generate a docx table from
-the printed output:
+This script generates text in a markdown table format inside a file. The
+following command line call can be used to generate a docx table from
+the output markdown file of this script:
 
 pandoc -o output_file.docx -f markdown -t docx input_file.md
 
@@ -48,11 +46,10 @@ def usage_msg():
     usage_message = """ borealis_gaps.py [-h] data_dir start_day end_day
 
     Pass in the raw data directory that you want to check for borealis gaps. This script uses
-    multiprocessing to check for gaps in the files of each day and gaps between the days.
+    multiprocessing to check for gaps in the hdf5 files of each day and gaps between the days.
 
-    The data directory passed in should have within it multiple directories named YYYY and within
-    that directory, directories labelled MM with all available data from that month being
-    held there.
+    This script will use the find command to find files from the specified days in the given
+    data directory.
     """
 
     return usage_message
@@ -137,10 +134,11 @@ def get_record_timestamps(filename, record_dict, filetype, file_structure='array
             records.append(reader.records[record_name]['sqn_timestamps'][0])
 
         if bzip2:
-            if borealis_hdf5_file.split('.')[-1] in ['bz2', 'bzip2']:
-                print('Warning: attempted remove of original bzip file {}'.format(borealis_hdf5_file))
-            else:
+            if borealis_hdf5_file != filename:
+                # if the original was bzipped the borealis_hdf5_file used will have a different name from original.
                 os.remove(borealis_hdf5_file)
+            else:
+                print('Warning: attempted remove of original file {}'.format(borealis_hdf5_file))
     elif file_structure == 'array':
         # get first timestamp per record in sqn_timestamps array of num_records x num_sequences
         reader = pydarn.BorealisRead(filename, filetype, file_structure)
@@ -279,7 +277,7 @@ def print_gaps(gaps_dict, first_timestamp, last_timestamp, gap_spacing, print_fi
     last_timestamp
         datetime of last timestamp in period of gaps
     gap_spacing
-        Gap spacing used, in s. 
+        Gap spacing used, in s.
     print_filename
         filename to print the gaps table to, in addition to the stdout.
     """
@@ -287,7 +285,9 @@ def print_gaps(gaps_dict, first_timestamp, last_timestamp, gap_spacing, print_fi
     strf_format = '%Y%m%d %H:%M:%S'
 
     with open(print_filename, "a") as f:
-        print('GAPS GREATER THAN {} s BETWEEN {} and {}:'.format(str(gap_spacing), first_timestamp.strftime(strf_format), last_timestamp.strftime(strf_format)), file=f)
+        print('GAPS GREATER THAN {} s BETWEEN {} and {}:'.format(
+            str(gap_spacing), first_timestamp.strftime(strf_format),
+            last_timestamp.strftime(strf_format)), file=f)
         # new line required for table to generate
         print(' ', file=f)
         print('| START TIME | END TIME | DURATION (min) | CAUSE |', file=f)
@@ -316,7 +316,9 @@ def print_gaps(gaps_dict, first_timestamp, last_timestamp, gap_spacing, print_fi
             total_duration_min += duration
         total_duration_hrs = round(total_duration_min/60.0, 1)
         total_duration_days = round(total_duration_hrs/24.0, 1)
-        print('TOTAL DOWNTIME DURATION IN PERIOD from {} to {}: \n'.format(first_timestamp.strftime(strf_format), last_timestamp.strftime(strf_format)), file=f)
+        print('TOTAL DOWNTIME DURATION IN PERIOD from {} to {}: \n'.format(
+            first_timestamp.strftime(strf_format),
+            last_timestamp.strftime(strf_format)), file=f)
         print('{} minutes\n'.format(total_duration_min), file=f)
         print('{} hours\n'.format(total_duration_hrs), file=f)
         print('{} days\n'.format(total_duration_days), file=f)
@@ -350,7 +352,7 @@ if __name__ == '__main__':
     else:
         file_structure = args.file_structure
         file_extension = '.hdf5.site.bz2'
-    
+
     data_dir = args.data_dir
     if data_dir[-1] != '/':
         data_dir += '/'
@@ -381,7 +383,8 @@ if __name__ == '__main__':
         print(one_day.strftime("%Y%m%d"))
 
         files = subprocess.check_output(['find', data_dir, '-name',
-                    one_day.strftime("%Y%m%d")+'*.' + filetype + '*' + file_extension]).splitlines()
+                    one_day.strftime("%Y%m%d")+'*.' + filetype + '*' +
+                    file_extension]).splitlines()
         # if os.path.isdir(data_dir + one_day.strftime("%Y%m%d")):
         #     files = glob.glob(data_dir + one_day.strftime("%Y%m%d") + '/*.' + filetype + '*')
         # else:
@@ -400,7 +403,8 @@ if __name__ == '__main__':
                     filename = files[filename_index + procnum].decode('ascii')
                 except IndexError:
                     if filename_index + procnum == 0:
-                        print('No files found for this day!')
+                        print('No files found for date {}'.format(
+                            one_day.strftime("%Y%m%d")))
                         files_this_day = False
                     files_left = False
                     break
@@ -418,7 +422,7 @@ if __name__ == '__main__':
         if files_this_day:
             record_dict[one_day] = filename_dict
             timestamps_dict[one_day] = combine_timestamp_lists(record_dict[one_day])
-        
+
         if one_day == start_day:
             first_timestamp = start_day.timestamp()
             if one_day in timestamps_dict.keys():
@@ -432,10 +436,10 @@ if __name__ == '__main__':
             else:
                 timestamps_dict[one_day] = [last_timestamp]
 
-        if one_day in timestamps_dict.keys(): # first or last day, or files were found for the day 
+        if one_day in timestamps_dict.keys(): # first or last day, or files were found for the day
             gaps_dict[one_day] = check_for_gaps_between_records(timestamps_dict[one_day], gap_spacing)
             #print(gaps_dict[one_day])
-        
+
     # now that gaps_dict is entirely filled with each day in the range, find gaps between days
     gaps_dict = check_for_gaps_between_days(timestamps_dict, gap_spacing, gaps_dict)
 
