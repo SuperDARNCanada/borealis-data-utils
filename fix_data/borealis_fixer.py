@@ -17,17 +17,17 @@ import deepdish as dd
 def usage_msg():
     """
     Return the usage message for this process.
-     
+
     This is used if a -h flag or invalid arguments are provided.
     """
 
     usage_message = """ borealis_fixer.py [-h] filename fixed_dat_dir
-    
+
     **** NOT TO BE USED IN PRODUCTION ****
     **** USE WITH CAUTION ****
 
     Modify a borealis file with updated data fields. Modify the script where
-    indicated to update the file. Used in commissioning phase of Borealis when 
+    indicated to update the file. Used in commissioning phase of Borealis when
     data fields were not finalized."""
 
     return usage_message
@@ -51,7 +51,7 @@ def update_file(filename, out_file):
 
 
     write_dict = {}
-    
+
     def convert_to_numpy(data):
         """Converts lists stored in dict into numpy array. Recursive.
 
@@ -70,80 +70,7 @@ def update_file(filename, out_file):
     for key_num, group_name in enumerate(sorted_keys):
 
         # APPLY CHANGE HERE
-        #recs[group_name]['data_dimensions'][0] = 2
-        if 'noise_at_freq' not in recs[group_name].keys():
-            recs[group_name]['noise_at_freq'] = np.array([0.0] * int(recs[group_name]['num_sequences']), dtype=np.float64)
-            if key_num == 0:
-                print('noise_at_freq added')
-        if 'data_normalization_factor' not in recs[group_name].keys():
-            recs[group_name]['data_normalization_factor'] = np.float64(9999999.999999996)
-            if key_num == 0:
-                print('data_normalization_factor added')
-        if 'comment' in recs[group_name].keys():
-            recs[group_name]['experiment_comment'] = recs[group_name]['comment']
-            del recs[group_name]['comment']
-            if key_num == 0:
-                print('experiment_comment added')
-        if 'slice_comment' not in recs[group_name].keys():
-            recs[group_name]['slice_comment'] = np.unicode_('')
-            if key_num == 0:
-                print('slice_comment added')
-        if 'experiment_string' in recs[group_name].keys():
-            recs[group_name]['experiment_name'] = recs[group_name]['experiment_string']
-            del recs[group_name]['experiment_string']
-            if key_num == 0:
-                print('experiment_name added')
-        if 'num_slices' not in recs[group_name].keys():
-            recs[group_name]['num_slices'] = np.int64(1)
-            if key_num == 0:
-                print('num_slices added')
-        if 'range_sep' not in recs[group_name].keys():
-            recs[group_name]['range_sep'] = np.float32(44.96887)
-            if key_num == 0:
-                print('range_sep added')
-        if 'num_ranges' not in recs[group_name].keys():
-            recs[group_name]['num_ranges'] = np.uint32(75)
-            if key_num == 0:
-                print('num_ranges added')
-        if 'timestamp_of_write' in recs[group_name].keys():
-            del recs[group_name]['timestamp_of_write']
-            if key_num == 0:
-                print('timestamp_of_write removed')
-        if not isinstance(recs[group_name]['experiment_id'], np.int64):
-            recs[group_name]['experiment_id'] = np.int64(recs[group_name]['experiment_id'])
-            if key_num == 0:
-                print('experiment id type changed')
-
-        lag_table = list(itertools.combinations(recs[group_name]['pulses'], 2))
-        lag_table.append([recs[group_name]['pulses'][0], recs[group_name][
-            'pulses'][0]])  # lag 0
-        # sort by lag number
-        lag_table = sorted(lag_table, key=lambda x: x[1] - x[0])
-        lag_table.append([recs[group_name]['pulses'][-1], recs[group_name][
-            'pulses'][-1]])  # alternate lag 0
-        recs[group_name]['lags'] = np.array(lag_table, dtype=np.uint32)
-        if key_num == 0:
-            print('lagtable generated due to unsorted')
-        
-        if recs[group_name]['range_sep'] > 1000.0:
-            recs[group_name]['range_sep'] = np.float32(recs[group_name]['range_sep']/1000.0)
-            if key_num == 0:
-                print('range_sep changed due to bug')
-
-        #recs[group_name]['first_range'] = np.float32(0.0)
-        #if key_num == 0:
-        #    print('changed first range to zero due to bug')
-        #recs[group_name]['data_dimensions'][0] = 2 # only 2 antenna arrays not 3!
-
-        
-        # if recs[group_name]['correlation_dimensions'].shape[0] == 2:
-        #     recs[group_name]['correlation_dimensions'] = np.array([1] + list(recs[group_name]['correlation_dimensions']), dtype=np.uint32)
-        #     # assuming num_beams = 1 here. Giving three dimensions as required     
-        #     recs[group_name]['correlation_descriptors'] = np.array(['num_beams', 'num_ranges', 'num_lags', dtype=np.unicode_])
-        # if not isinstance(recs[group_name]['correlation_dimensions'][0], np.uint32):
-        #     recs[group_name]['correlation_dimensions'] = np.array(recs[group_name]['correlation_dimensions'], dtype=np.uint32)
-        # if recs[group_name]['correlation_dimensions'][2] == 0:
-        #     recs[group_name]['correlation_dimensions'][2] = np.uint32(recs[group_name]['lags'].shape[0])
+        recs[group_name]['blanked_samples'] = sorted(set(recs[group_name]['blanked_samples']))
 
         write_dict = {}
         write_dict[group_name] = convert_to_numpy(recs[group_name])
@@ -153,18 +80,17 @@ def update_file(filename, out_file):
         cmd = 'h5copy -i {newfile} -o {twohr} -s {dtstr} -d {dtstr}'
         cmd = cmd.format(newfile=tmp_file, twohr=out_file, dtstr=group_name)
 
-        # TODO(keith): improve call to subprocess.
         sp.call(cmd.split())
         os.remove(tmp_file)
 
 
 def decompress_bz2(filename):
-    basename = os.path.basename(filename) 
+    basename = os.path.basename(filename)
     newfilepath = os.path.dirname(filename) + '/' + '.'.join(basename.split('.')[0:-1]) # all but bz2
 
     with open(newfilepath, 'wb') as new_file, bz2.BZ2File(filename, 'rb') as file:
         for data in iter(lambda : file.read(100 * 1024), b''):
-            new_file.write(data)    
+            new_file.write(data)
 
     return newfilepath
 
@@ -174,14 +100,14 @@ def compress_bz2(filename):
 
     with open(filename, 'rb') as file, bz2.BZ2File(bz2_filename, 'wb') as bz2_file:
         for data in iter(lambda : file.read(100 * 1024), b''):
-            bz2_file.write(data)   
+            bz2_file.write(data)
 
     return bz2_filename
 
 
 def file_updater(filename, fixed_data_dir):
     """
-    Checks if the file is bz2, decompresses if necessary, and 
+    Checks if the file is bz2, decompresses if necessary, and
     writes to a fixed data directory. If the file was bz2, then the resulting
     file will also be compressed to bz2.
 
@@ -199,7 +125,7 @@ def file_updater(filename, fixed_data_dir):
     else:
         hdf5_file = filename
         bzip2 = False
-    
+
     if fixed_data_dir[-1] == '/':
         out_file = fixed_data_dir + os.path.basename(hdf5_file)
     else:

@@ -18,19 +18,19 @@ from borealis_fixer import file_updater
 def usage_msg():
     """
     Return the usage message for this process.
-     
+
     This is used if a -h flag or invalid arguments are provided.
-     
+
     :returns: the usage message
     """
 
-    usage_message = """ borealis_fixer.py [-h] fixed_dat_dir path_regex 
-    
+    usage_message = """ batch_borealis_fixer.py [-h] fixed_dat_dir path_regex
+
     **** NOT TO BE USED IN PRODUCTION ****
     **** USE WITH CAUTION ****
 
     Batch modify borealis files with updated data fields. Modify the script where
-    indicated to update the file. Used in commissioning phase of Borealis when 
+    indicated to update the file. Used in commissioning phase of Borealis when
     data fields were not finalized."""
 
     return usage_message
@@ -50,7 +50,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     files_to_update = args.path_regex # should be a list
-    
+
     jobs = []
 
     files_left = True
