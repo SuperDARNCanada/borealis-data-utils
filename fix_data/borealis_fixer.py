@@ -42,8 +42,8 @@ def main():
     parser.add_argument("fixed_data_dir", help="The directory in which to place the fixed "
                                           "file.")
     args=parser.parse_args()
-    filename = args['filename']
-    fixed_data_dir = args['fixed_data_dir']
+    filename = args.filename
+    fixed_data_dir = args.fixed_data_dir
 
     recs = dd.io.load(filename)
     sorted_keys = sorted(list(recs.keys()))
@@ -73,8 +73,8 @@ def main():
 
         # APPLY CHANGE HERE
         # recs[group_name]['data_dimensions'][0] = 2
-        recs[group_name]['main_acfs'] = recs[group_name]['main_acfs'] * -1
-        recs[group_name]['xcfs'] = recs[group_name]['xcfs'] * -1
+        recs[group_name]['blanked_samples'] = sorted(set(recs[group_name]['blanked_samples']))
+        # recs[group_name]['xcfs'] = recs[group_name]['xcfs'] * -1
 
         write_dict = {}
         write_dict[group_name] = convert_to_numpy(recs[group_name])
