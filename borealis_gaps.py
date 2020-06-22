@@ -66,7 +66,7 @@ def borealis_gaps_parser():
     parser.add_argument("--filetype", help="The filetype that you want to check gaps in (bfiq or "
                                            "rawacf typical). Default 'rawacf'")
     parser.add_argument("--gap_spacing", help="The gap spacing that you wish to check the file"
-                                              " for, in seconds. Default 7s.")
+                                              " for, in seconds. Default 120s.")
     parser.add_argument("--num_processes", help="The number of processes to use in the multiprocessing,"
                                                 " default 4.")
     parser.add_argument("--file_structure", help="The file structure to use when reading the files, "
@@ -360,7 +360,7 @@ if __name__ == '__main__':
     lowest_dir = data_dir.split('/')[-2]  # now has / at the end so must be second last element
 
     if args.gaps_table_file is None:
-        print_filename = os.environ['HOME'] + '/borealis_gaps/' + args.start_day + '_' + args.end_day + '_' + lowest_dir + '_gaps.md'
+        print_filename = os.environ['HOME'] + '/borealis_gaps/' + args.start_day + '_' + args.end_day + '_' + lowest_dir + '_gaps.csv'
     else:
         print_filename = gaps_table_file
 
