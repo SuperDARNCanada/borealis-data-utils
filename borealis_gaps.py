@@ -265,7 +265,7 @@ def daterange(start_date, end_date):
 
 def print_gaps(gaps_dict, first_timestamp, last_timestamp, gap_spacing, print_filename):
     """
-    Printer function for a dictionary of gaps. Prints a markdown
+    Printer function for a dictionary of gaps. Prints csv
     table for easy integration into documents.
 
     Parameters
@@ -285,13 +285,13 @@ def print_gaps(gaps_dict, first_timestamp, last_timestamp, gap_spacing, print_fi
     strf_format = '%Y%m%d %H:%M:%S'
 
     with open(print_filename, "a") as f:
-        print('GAPS GREATER THAN {} s BETWEEN {} and {}:'.format(
+        print('GAPS GREATER THAN {} s BETWEEN {} and {}:,'.format(
             str(gap_spacing), first_timestamp.strftime(strf_format),
             last_timestamp.strftime(strf_format)), file=f)
         # new line required for table to generate
         print(' ', file=f)
-        print('| START TIME | END TIME | DURATION (min) | CAUSE |', file=f)
-        print('| --- | --- | ---:| --- |', file=f)
+        print('START TIME, END TIME, DURATION (min), CAUSE,', file=f)
+        print(' ', file=f)
 
         duration_dict = {}
         for day in sorted(gaps_dict.keys()):
@@ -304,9 +304,9 @@ def print_gaps(gaps_dict, first_timestamp, last_timestamp, gap_spacing, print_fi
                     gap_duration = gap_end_time - gap_start_time
                     duration = gap_duration.total_seconds()
                     duration_min = round(duration/60.0, 1)
-                    print('| ' + gap_start_time.strftime(strf_format) + ' | '  +
-                      gap_end_time.strftime(strf_format) + ' | ' +
-                      str(duration_min) + ' |   |', file=f)
+                    print(gap_start_time.strftime(strf_format) + ' ,'  +
+                      gap_end_time.strftime(strf_format) + ' ,' +
+                      str(duration_min) + ',,', file=f)
                     duration_dict[day] += duration_min
 
         # end table, print new line
@@ -316,12 +316,12 @@ def print_gaps(gaps_dict, first_timestamp, last_timestamp, gap_spacing, print_fi
             total_duration_min += duration
         total_duration_hrs = round(total_duration_min/60.0, 1)
         total_duration_days = round(total_duration_hrs/24.0, 1)
-        print('TOTAL DOWNTIME DURATION IN PERIOD from {} to {}: \n'.format(
+        print('TOTAL DOWNTIME DURATION IN PERIOD from {} to {}: ,\n'.format(
             first_timestamp.strftime(strf_format),
             last_timestamp.strftime(strf_format)), file=f)
-        print('{} minutes\n'.format(total_duration_min), file=f)
-        print('{} hours\n'.format(total_duration_hrs), file=f)
-        print('{} days\n'.format(total_duration_days), file=f)
+        print('{} minutes,\n'.format(total_duration_min), file=f)
+        print('{} hours,\n'.format(total_duration_hrs), file=f)
+        print('{} days,\n'.format(total_duration_days), file=f)
 
     print(' ')
     subprocess.call(['cat', print_filename])
@@ -332,7 +332,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     if args.gap_spacing is None:
-        gap_spacing = 15 # s
+        gap_spacing = 120 # s
     else:
         gap_spacing = float(args.gap_spacing)
 
