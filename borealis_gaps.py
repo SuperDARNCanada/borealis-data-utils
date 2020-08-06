@@ -4,7 +4,7 @@
 """
 This script is used to find gaps in Borealis data files.
 
-This script must be run from a virtualenv with pydarn installed.
+This script must be run from a virtualenv with pydarnio installed.
 
 This script generates text in a markdown table format inside a file. The
 following command line call can be used to generate a docx table from
@@ -28,7 +28,7 @@ import time
 
 from multiprocessing import Pool, Queue, Manager, Process
 
-import pydarn
+from pydarnio import BorealisRead
 
 
 def usage_msg():
@@ -127,7 +127,7 @@ def get_record_timestamps(filename, record_dict, filetype, file_structure='array
             borealis_hdf5_file = filename
             bzip2 = False
 
-        reader = pydarn.BorealisRead(filename, filetype, file_structure)
+        reader = BorealisRead(filename, filetype, file_structure)
         # get all records first timestamp
         records = []
         for record_name in reader.record_names:
@@ -141,7 +141,7 @@ def get_record_timestamps(filename, record_dict, filetype, file_structure='array
                 print('Warning: attempted remove of original file {}'.format(borealis_hdf5_file))
     elif file_structure == 'array':
         # get first timestamp per record in sqn_timestamps array of num_records x num_sequences
-        reader = pydarn.BorealisRead(filename, filetype, file_structure)
+        reader = BorealisRead(filename, filetype, file_structure)
         records = reader.arrays['sqn_timestamps'][:,0] # all records first timestamp
     else:
         raise Exception('Invalid file structure provided')
