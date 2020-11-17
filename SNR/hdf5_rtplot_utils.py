@@ -45,7 +45,7 @@ from scipy.fftpack import fft
 matplotlib.use('Agg')
 plt.rcParams.update({'font.size': 28})
 
-from pydarn import BorealisRead, BorealisWrite
+from pydarnio import BorealisRead, BorealisWrite
 
 def plot_unaveraged_range_time_data(data_array, num_sequences_array, 
     timestamps_array, dataset_descriptor, plot_filename, vmax, vmin, 
