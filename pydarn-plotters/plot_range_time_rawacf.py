@@ -7,8 +7,7 @@ import os
 plt.rcParams.update({'font.size': 28})
 
 rawacf_file = sys.argv[1]
-darn_read = pydarn.SDarnRead(rawacf_file)
-rawacf_data = darn_read.read_rawacf()
+rawacf_data = pydarn.SuperDARNRead.read_dmap(rawacf_file)
 
 rawacf_file_basename = os.path.basename(rawacf_file)
 

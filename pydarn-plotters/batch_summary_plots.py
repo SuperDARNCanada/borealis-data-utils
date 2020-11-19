@@ -39,8 +39,7 @@ def single_rtp_plot(fitacf_file):
     """
     Plots beam zero param p_l
     """
-    pydarn_reader = pydarn.DarnRead(fitacf_file)
-    fitacf_data = pydarn_reader.read_fitacf()
+    fitacf_data = pydarn.SuperDARNRead.read_dmap(fitacf_file)
     plt.figure(figsize=(12, 8))
     im, cb, cmap, time_axis, elev_axis, z_data = pydarn.RTP.plot_range_time(fitacf_data, parameter='p_l', beam_num=0, groundscatter=False)
     #plt.gcf().set_size_inches(8, 12)
@@ -53,8 +52,7 @@ def plot_fitacf_summary(fitacf_file):
     Plots beam 0 fitacf file summary plot.
     """
 
-    pydarn_reader = pydarn.DarnRead(fitacf_file)
-    fitacf_data = pydarn_reader.read_fitacf()
+    fitacf_data = pydarn.SuperDARNRead.read_dmap(fitacf_file)
 
     pydarn.RTP.plot_summary(fitacf_data, beam_num=0, groundscatter=True, boundary={'nave': (0,40)})
     

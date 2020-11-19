@@ -5,8 +5,7 @@ import matplotlib.pyplot as plt
 
 fitacf_file = sys.argv[1]
 
-pydarn_reader = pydarn.SDarnRead(fitacf_file)
-fitacf_data = pydarn_reader.read_fitacf()
+fitacf_data = pydarn.SuperDARNRead.read_dmap(fitacf_file)
 
 for beam in range(0,16):
     pydarn.RTP.plot_summary(fitacf_data, figsize=(22, 17), beam_num=beam, groundscatter=True)
