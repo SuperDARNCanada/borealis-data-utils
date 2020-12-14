@@ -4,6 +4,7 @@ Scripts and utilities for analyzing Borealis data (operations focused).
 
 **Dependencies**
 pydarn
+pydarnio
 
 **Utilities**
 
