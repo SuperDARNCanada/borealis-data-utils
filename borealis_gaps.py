@@ -28,8 +28,10 @@ import time
 
 from multiprocessing import Pool, Queue, Manager, Process
 
-from pydarnio import BorealisRead
-
+try:
+    from pydarnio import BorealisRead
+except ModuleNotFoundError as err:
+    raise ModuleNotFoundError('Please source a pydarnio virtual environment!') from err
 
 def usage_msg():
     """
