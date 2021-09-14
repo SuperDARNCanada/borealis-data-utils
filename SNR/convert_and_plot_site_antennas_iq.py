@@ -84,7 +84,7 @@ def main():
 
     if not args.plot_only:
         for filename in os.listdir(args.borealis_site_directory):
-            if filename.endswith(".site") or filename.endswith(".site.bz2"):
+            if filename.endswith(".antennas_iq.site") or filename.endswith(".antennas_iq.site.bz2"):
                 filepath = os.path.join(args.borealis_site_directory, filename)
                 convert_cmd = "python3 ~/data_flow/site-linux/borealis_convert_file.py {}".format(filepath)
                 execute_cmd(convert_cmd)
