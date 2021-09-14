@@ -92,11 +92,11 @@ def main():
     
     if not args.convert_only:
         for filename in os.listdir(args.borealis_site_directory):
-            if filename.endswith(".hdf5"):
+            if filename.endswith(".antennas_iq.hdf5"):
                 filepath = os.path.join(args.borealis_site_directory, filename)
                 plot_cmd = "python3 ~/borealis-data-utils/SNR/plot_antennas_range_time.py {}".format(filepath)
-                execute_cmd(plot_cmd)
-                #print(plot_cmd)
+                #execute_cmd(plot_cmd)
+                print(plot_cmd)
 
 
 if __name__ == "__main__":
