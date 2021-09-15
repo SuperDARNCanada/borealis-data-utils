@@ -63,6 +63,12 @@ def execute_cmd(cmd):
     return output.decode('utf-8')
 
 def convert_and_plot_parser():
+    """
+    Parses the command line arguments passed when this script was called.
+
+    :returns:   Object with all the arguments and flags supported by this script.
+    :rtype:     ArgumentParser object
+    """
     parser = argparse.ArgumentParser(usage=usage_msg())
     parser.add_argument("borealis_site_directory", help="Path to the directory with files that "
                                                     "you wish to convert. "
@@ -75,28 +81,44 @@ def convert_and_plot_parser():
     return parser
 
 def main():
+    """
+    Takes a path to a directory, then converts all antennas_iq.hdf5.site(.bz2) files into
+    array-formatted files (antennas_iq.hdf5). Then, plots the antennas_iq for each antenna
+    in each file. Optional flags allow either conversion only or plotting only.
+    
+    Converted files are saved in the same directory, and are named identically sans the .site(.bz2) suffix.
+
+    Plots are saved in the same directory, with the same naming convention.
+    """
     parser = convert_and_plot_parser()
     args = parser.parse_args()
     
+    print(args.borealis_site_directory)     # Directory passed by the user
+    
+    # User error 
     if args.plot_only and args.convert_only:
         print(usage_msg())
         return(-1)
 
+    # If only plotting, skip the conversion step
     if not args.plot_only:
+        print("Converting...")
         for filename in os.listdir(args.borealis_site_directory):
-            if filename.endswith(".antennas_iq.site") or filename.endswith(".antennas_iq.site.bz2"):
+            if filename.endswith(".antennas_iq.hdf5.site") or filename.endswith(".antennas_iq.hdf5.site.bz2"):
                 filepath = os.path.join(args.borealis_site_directory, filename)
                 convert_cmd = "python3 ~/data_flow/site-linux/borealis_convert_file.py {}".format(filepath)
                 execute_cmd(convert_cmd)
-                #print(convert_cmd)        
+                print(filename)        
     
+    # If only converting, skip the plotting step
     if not args.convert_only:
+        print("Plotting...")
         for filename in os.listdir(args.borealis_site_directory):
             if filename.endswith(".antennas_iq.hdf5"):
                 filepath = os.path.join(args.borealis_site_directory, filename)
                 plot_cmd = "python3 ~/borealis-data-utils/SNR/plot_antennas_range_time.py {}".format(filepath)
                 execute_cmd(plot_cmd)
-                #print(plot_cmd)
+                print(filename)
 
 
 if __name__ == "__main__":
