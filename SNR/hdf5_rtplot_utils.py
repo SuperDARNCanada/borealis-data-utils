@@ -99,6 +99,8 @@ def plot_unaveraged_range_time_data(data_array, num_sequences_array,
             power = np.sqrt(voltage_samples.real**2 + 
                             voltage_samples.imag**2)[sequence,
                             start_sample:end_sample]
+            
+            power = np.where(power > 0, power, sys.float_info.epsilon)
             power_db = 10 * np.log10(power)
             sequence_noise_db = 10 * np.log10(np.average(
                                 np.sort(power)[:10]))
@@ -147,7 +149,7 @@ def plot_unaveraged_range_time_data(data_array, num_sequences_array,
     # ax2.xaxis.set_major_formatter(date_format)
     # fig.autofmt_xdate()
     # ax2.tick_params(axis='x', which='major', labelsize='15')
-    fig.colorbar(img, cax=cax2, label='SNR')
+    fig.colorbar(img, cax=cax2, label='Log Power of Voltage (a.u.)')
     cax1.axis('off') 
 
     ax2.get_shared_x_axes().join(ax1, ax2)
