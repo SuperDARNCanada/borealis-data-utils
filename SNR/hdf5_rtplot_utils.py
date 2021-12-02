@@ -39,17 +39,16 @@ import numpy as np
 import os
 import sys
 
+from pydarnio import BorealisRead, BorealisWrite
 from multiprocessing import Pool, Process
 from scipy.fftpack import fft
 
 matplotlib.use('Agg')
 plt.rcParams.update({'font.size': 28})
 
-from pydarnio import BorealisRead, BorealisWrite
 
-def plot_unaveraged_range_time_data(data_array, num_sequences_array, 
-    timestamps_array, dataset_descriptor, plot_filename, vmax, vmin, 
-    start_sample, end_sample):
+def plot_unaveraged_range_time_data(data_array, num_sequences_array, timestamps_array, dataset_descriptor,
+                                    plot_filename, vmax, vmin, start_sample, end_sample):
     """
     Plots data as range time given an array with correct dimensions. Also
     plots SNR by finding the ratio of max power in the sequence to average 
@@ -147,7 +146,7 @@ def plot_unaveraged_range_time_data(data_array, num_sequences_array,
     # ax2.xaxis.set_major_formatter(date_format)
     # fig.autofmt_xdate()
     # ax2.tick_params(axis='x', which='major', labelsize='15')
-    fig.colorbar(img, cax=cax2, label='SNR')
+    fig.colorbar(img, cax=cax2, label='Raw Power (dB)')
     cax1.axis('off') 
 
     ax2.get_shared_x_axes().join(ax1, ax2)
@@ -156,8 +155,8 @@ def plot_unaveraged_range_time_data(data_array, num_sequences_array,
     plt.close() 
 
 
-def plot_antennas_range_time(antennas_iq_file, antenna_nums=None, 
-    num_processes=3, vmax=40.0, vmin=10.0, start_sample=0, end_sample=70):
+def plot_antennas_range_time(antennas_iq_file, antenna_nums=None, num_processes=3, vmax=40.0, vmin=10.0,
+                             start_sample=0, end_sample=80):
     """ 
     Plots unaveraged range time data from echoes received in every sequence
     for a single antenna.
@@ -223,7 +222,7 @@ def plot_antennas_range_time(antennas_iq_file, antenna_nums=None,
     for antenna_num, antenna_name in zip(antenna_indices, antenna_names):
         antenna_data = arrays['data'][:,antenna_num,:,:]   
         plot_filename = directory_name + '/' + time_of_plot + \
-                   '.{}_{}_{}.png'.format(antenna_name, start_sample, 
+                   '.{}_{}_{}.png'.format(antenna_name, start_sample,
                                           end_sample)
         arg_tuples.append((copy.copy(antenna_data), sequences_data, 
             timestamps_data, antenna_name, plot_filename, vmax, vmin, 
