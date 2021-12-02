@@ -252,8 +252,8 @@ def plot_antennas_range_time(antennas_iq_file, antenna_nums=None, num_processes=
         antennas_index += num_processes
 
 
-def plot_arrays_range_time(bfiq_file, beam_nums=None, num_processes=3, 
-    vmax=50.0, vmin=10.0, start_sample=0, end_sample=70):
+def plot_arrays_range_time(bfiq_file, beam_nums=None, num_processes=3, vmax=50.0, vmin=10.0, start_sample=0,
+                           end_sample=70):
     """ 
     Plots unaveraged range time data from echoes received in every sequence
     for a single beam.
@@ -283,12 +283,10 @@ def plot_arrays_range_time(bfiq_file, beam_nums=None, num_processes=3,
         will plot.
     """ 
 
-    reader = BorealisRead(bfiq_file, 'bfiq', 
-                          borealis_file_structure='array')
+    reader = BorealisRead(bfiq_file, 'bfiq', borealis_file_structure='array')
     arrays = reader.arrays
 
-    (num_records, num_antenna_arrays, max_num_sequences, max_num_beams, 
-        num_samps) = arrays['data'].shape
+    (num_records, num_antenna_arrays, max_num_sequences, max_num_beams, num_samps) = arrays['data'].shape
 
     basename = os.path.basename(bfiq_file)
     directory_name = os.path.dirname(bfiq_file)
@@ -299,11 +297,13 @@ def plot_arrays_range_time(bfiq_file, beam_nums=None, num_processes=3,
         # arrays['beam_nums'] is of shape num_records x max_num_beams
         # Note we do not want to include appended zeroes in the unique calc.
         all_beams = np.empty(0, dtype=np.uint32)
+
         for record_num in range(0, num_records):
             num_beams_in_record = int(arrays['num_beams'][record_num])
-            all_beams = np.concatenate((all_beams, arrays['beam_nums'][
-                record_num,:num_beams_in_record]))
+            all_beams = np.concatenate((all_beams, arrays['beam_nums'][record_num, :num_beams_in_record]))
+
         beam_names = np.unique(all_beams)
+
     else:
         beam_names = np.array(beam_nums, dtype=np.uint32)
 
@@ -316,31 +316,29 @@ def plot_arrays_range_time(bfiq_file, beam_nums=None, num_processes=3,
         # to plot x num_sequences x num_samps
         # also have to remake the timestamps and sequences data only for 
         # those records that contain this beam.
-        beam_timestamps_data = np.empty((0,max_num_sequences))
+        beam_timestamps_data = np.empty((0, max_num_sequences))
         beam_sequences_data = np.empty(0)
-        beam_arrays_data = np.empty((0, num_antenna_arrays, 
-            max_num_sequences, num_samps))
+        beam_arrays_data = np.empty((0, num_antenna_arrays, max_num_sequences, num_samps))
+
         for record_num in range(0, num_records):
             if beam_name in arrays['beam_nums'][record_num]:
                 beam_index = list(arrays['beam_nums'][record_num]).index(beam_name)
                 beam_timestamps_data = np.concatenate((beam_timestamps_data,
-                    np.reshape(arrays['sqn_timestamps'][record_num], (1, 
-                        max_num_sequences))))
+                                                       np.reshape(arrays['sqn_timestamps'][record_num],
+                                                                  (1, max_num_sequences))))
                 beam_sequences_data = np.concatenate((beam_sequences_data,
-                    np.reshape(arrays['num_sequences'][record_num], 1)))
-                beam_arrays_data = np.concatenate((beam_arrays_data, 
-                    np.reshape(arrays['data'][record_num,
-                        :,:,beam_index,:], (1, num_antenna_arrays, 
-                            max_num_sequences, num_samps))))
+                                                      np.reshape(arrays['num_sequences'][record_num], 1)))
+                beam_arrays_data = np.concatenate((beam_arrays_data,
+                                                   np.reshape(arrays['data'][record_num, :, :, beam_index, :],
+                                                              (1, num_antenna_arrays, max_num_sequences, num_samps))))
 
         for array_num, array_name in enumerate(arrays['antenna_arrays_order']):
             plot_filename = directory_name + '/' + time_of_plot + \
-                       '.{}_beam{}_{}_{}.png'.format(array_name, str(beam_name),
-                                            start_sample, end_sample)
+                            f'.{array_name}_beam{str(beam_name)}_{start_sample}_{end_sample}.png'
             descriptor = array_name + ' beam ' + str(beam_name)
-            arg_tuples.append((copy.copy(beam_arrays_data[:,array_num,:,:]), 
-                beam_sequences_data, beam_timestamps_data, descriptor, 
-                plot_filename, vmax, vmin, start_sample, end_sample))
+            arg_tuples.append((copy.copy(beam_arrays_data[:, array_num, :, :]),
+                               beam_sequences_data, beam_timestamps_data, descriptor, plot_filename, vmax, vmin,
+                               start_sample, end_sample))
 
     jobs = []
     plots_index = 0
@@ -364,7 +362,6 @@ def plot_arrays_range_time(bfiq_file, beam_nums=None, num_processes=3,
 
         plots_index += num_processes
 
-    
     # for beam in main_power_dict.keys():
     #     main_power_array = np.transpose(np.array(main_power_dict[beam])[:,0:69])
     #     intf_power_array = np.transpose(np.array(intf_power_dict[beam])[:,0:69])
