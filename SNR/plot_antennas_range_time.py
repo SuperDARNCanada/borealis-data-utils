@@ -22,11 +22,10 @@ def usage_msg():
         The usage message on how to use this 
     """
 
-    usage_message = """ plot_antennas_range_time.py [-h] antennas_iq_file --antenna-nums --max-power --min-power --start-sample --end-sample
+    usage_message = """ plot_antennas_range_time.py [-h] antennas_iq_file --antennas --max-power --min-power --start-sample --end-sample
     
-    Pass in the name of the antennas_iq array-restructured file that you want 
-    to plot range time data from. Antenna numbers from 0 to 20 will be plotted 
-    on separate plots.
+    Pass in the name of the antennas_iq file that you want to plot range time data from. 
+    Antenna numbers will be plotted on separate plots.
     """
 
     return usage_message
@@ -39,7 +38,7 @@ def plot_parser():
     parser.add_argument("--max-power", help="Maximum Power of color scale (dB).", default=40.0)
     parser.add_argument("--min-power", help="Minimum Power of color scale (dB).", default=10.0)
     parser.add_argument("--start-sample", help="Sample Number to start at.", default=0)
-    parser.add_argument("--end-sample", help="Sample Number to end at.", default=80)
+    parser.add_argument("--end-sample", help="Sample Number to end at.", default=70)
     return parser
 
 
@@ -60,6 +59,6 @@ if __name__ == '__main__':
             else:
                 antenna_nums.append(int(antenna))
 
-    plot_antennas_range_time(filename, antenna_nums=args.antenna_nums, num_processes=3, vmax=args.max_power,
+    plot_antennas_range_time(filename, antenna_nums=antenna_nums, num_processes=3, vmax=args.max_power,
                              vmin=args.min_power, start_sample=args.start_sample, end_sample=args.end_sample)
 
