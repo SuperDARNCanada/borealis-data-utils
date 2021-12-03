@@ -40,7 +40,7 @@ def plot_parser():
     parser = argparse.ArgumentParser(usage=usage_msg())
     parser.add_argument("rawacf_file", help="Name of the file to plot.")
     parser.add_argument("--beams", help="Beams to plot. Format as --beams=0,1,2-5", type=str)
-    parser.add_argument("--lags", help="Lags to plot. Format as --lags=", type=str, default='0')
+    parser.add_argument("--lags", help="Lags to plot. Format as --lags=0,1-4,11", type=str, default='0')
     parser.add_argument("--datasets", help="Datasets to plot. Format as --datasets=main_acfs,intf_acfs,xcfs", type=str)
     parser.add_argument("--max-power", help="Maximum Power of color scale (dB).", default=50.0, type=float)
     parser.add_argument("--min-power", help="Minimum Power of color scale (dB).", default=10.0, type=float)
