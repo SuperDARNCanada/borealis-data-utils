@@ -313,7 +313,7 @@ def plot_arrays_range_time(bfiq_file, beam_nums=None, num_processes=3, vmax=50.0
         beam_sequences_data = np.empty(0)
         beam_arrays_data = np.empty((0, num_antenna_arrays, max_num_sequences, num_samps))
 
-        for record_num in range(0, 4):
+        for record_num in range(0, num_records):
             if beam_name in arrays['beam_nums'][record_num]:
                 beam_index = list(arrays['beam_nums'][record_num]).index(beam_name)
                 beam_timestamps_data = np.concatenate((beam_timestamps_data,
@@ -559,7 +559,7 @@ def plot_rawacf_lag_pwr(rawacf_file, beam_nums=None, lag_nums=[0],
             beam_lag_dict = {}
             for dataset in datasets:
                 beam_lag_dict[dataset] = np.empty((0, num_ranges))
-            for record_num in range(0, 4):
+            for record_num in range(0, num_records):
                 if beam_name in arrays['beam_nums'][record_num]:
                     beam_index = list(arrays['beam_nums'][record_num]).index(beam_name)
                     beam_timestamps_data = np.concatenate((beam_timestamps_data,
