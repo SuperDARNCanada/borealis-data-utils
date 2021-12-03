@@ -17,31 +17,29 @@ plot_unaveraged_range_time_data
     Used by the other functions. Takes the necessary arrays and plots 
     the data as a range-time and SNR plot. 
 plot_antennas_range_time
-    Uses plot_unaveraged_range_time_data and BorealisRead to read an 
-    array-structured antennas_iq file and plot the range-time data.
+    Uses plot_unaveraged_range_time_data and BorealisRead to read an
+    antennas_iq file and plot the range-time data.
 plot_arrays_range_time
-    Uses plot_unaveraged_range_time_data and BorealisRead to read an 
-    array-structured bfiq file and plot the range-time data.
+    Uses plot_unaveraged_range_time_data and BorealisRead to read a
+    bfiq file and plot the range-time data.
 
 plot_averaged_range_time_data
     Used by other functions. Takes arrays of records x ranges and plots
     a range-time and an SNR plot.
 plot_rawacf_lag_pwr 
-    Uses plot_averaged_range_time_data and BorealisRead to read an 
-    array-structured rawacf file and plot the range-time data.
+    Uses plot_averaged_range_time_data and BorealisRead to read a
+    rawacf file and plot the range-time data.
 """
 import copy
 import datetime
 import matplotlib
-import matplotlib.dates as mdates
+# import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 import numpy as np
 import os
-import sys
 
-from pydarnio import BorealisRead, BorealisWrite
-from multiprocessing import Pool, Process
-from scipy.fftpack import fft
+from pydarnio import BorealisRead
+from multiprocessing import Process
 
 matplotlib.use('Agg')
 plt.rcParams.update({'font.size': 28})
@@ -286,7 +284,7 @@ def plot_arrays_range_time(bfiq_file, beam_nums=None, num_processes=3, vmax=50.0
     time_of_plot = '.'.join(basename.split('.')[0:6])
 
     # find the number of unique beams and their azimuths
-    if beam_nums is None:
+    if beam_nums is None or len(beam_nums) == 0:
         # arrays['beam_nums'] is of shape num_records x max_num_beams
         # Note we do not want to include appended zeroes in the unique calc.
         all_beams = np.empty(0, dtype=np.uint32)
@@ -473,9 +471,8 @@ def plot_averaged_range_time_data(data_array, timestamps_array, dataset_descript
     plt.close() 
 
 
-def plot_rawacf_lag_pwr(rawacf_file, beam_nums=None, lag_nums=[0], 
-    datasets=['main_acfs', 'intf_acfs', 'xcfs'], num_processes=3, vmax=50.0, 
-    vmin=10.0):
+def plot_rawacf_lag_pwr(rawacf_file, beam_nums=None, lag_nums=None, datasets=None, num_processes=3, vmax=50.0,
+                        vmin=10.0):
     """
     Plots the lag xcf phase of rawacf.hdf5 file, lag number found via lag_index.
     
@@ -519,7 +516,7 @@ def plot_rawacf_lag_pwr(rawacf_file, beam_nums=None, lag_nums=[0],
     time_of_plot = '.'.join(basename.split('.')[0:6])
 
     # find the number of unique beams and their azimuths
-    if beam_nums is None:
+    if beam_nums is None or len(beam_nums) == 0:
         # arrays['beam_nums'] is of shape num_records x max_num_beams
         # Note we do not want to include appended zeroes in the unique calc.
         all_beams = np.empty(0, dtype=np.uint32)
@@ -530,9 +527,10 @@ def plot_rawacf_lag_pwr(rawacf_file, beam_nums=None, lag_nums=[0],
     else:
         beam_names = np.array(beam_nums, dtype=np.uint32)
 
-    lag_names = arrays['lags']
     all_lag_nums = [lag[1] - lag[0] for lag in list(arrays['lags'])]
-    if lag_nums is None:
+
+    # No lag nums specified, try plotting all of them.
+    if lag_nums is None or len(lag_nums) == 0:
         lag_nums = all_lag_nums
         lag_indices = list(range(len(lag_nums)))
     else:
@@ -540,8 +538,12 @@ def plot_rawacf_lag_pwr(rawacf_file, beam_nums=None, lag_nums=[0],
         for lag_num in lag_nums:
             try:
                 lag_indices.append(all_lag_nums.index(lag_num))
-            except ValueError as e:
+            except ValueError:
                 raise ValueError(f'Lag number {lag_num} is not found in the file')
+
+    # No datasets specified, try to get all of them
+    if datasets is None or len(datasets) == 0:
+        datasets = ['main_acfs', 'intf_acfs', 'xcfs']
 
     for dataset in datasets:
         if dataset not in ['main_acfs', 'intf_acfs', 'xcfs']:
