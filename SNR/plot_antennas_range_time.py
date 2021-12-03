@@ -61,4 +61,3 @@ if __name__ == '__main__':
 
     plot_antennas_range_time(filename, antenna_nums=antenna_nums, num_processes=3, vmax=args.max_power,
                              vmin=args.min_power, start_sample=args.start_sample, end_sample=args.end_sample)
-

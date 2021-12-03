@@ -85,5 +85,3 @@ if __name__ == '__main__':
 
     plot_rawacf_lag_pwr(filename, beam_nums=beam_nums, lag_nums=lag_nums, datasets=datasets, num_processes=3,
                         vmax=args.max_power, vmin=args.min_power)
-
-
