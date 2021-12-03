@@ -82,29 +82,33 @@ def plot_unaveraged_range_time_data(data_array, num_sequences_array, timestamps_
     print(dataset_descriptor)
     (num_records, max_num_sequences, num_samps) = data_array.shape
 
-    power_list = [] # list of lists of power
-    timestamps = [] # list of timestamps
-    noise_list = [] # list of (average of ten weakest ranges in sample range)
-    max_snr_list = [] # max power - sequence noise (ave of 10 weakest ranges)
+    power_list = []     # list of lists of power
+    timestamps = []     # list of timestamps
+    noise_list = []     # list of (average of ten weakest ranges in sample range)
+    max_snr_list = []   # max power - sequence noise (ave of 10 weakest ranges)
+
     for record_num in range(num_records):
         num_sequences = int(num_sequences_array[record_num])
-        # get all antennas, up to num sequences, all samples for this record.
-        voltage_samples = data_array[record_num,:num_sequences,:]
+
+        # get data for all sequences up to num sequences for this record.
+        voltage_samples = data_array[record_num, :num_sequences, :]
 
         for sequence in range(num_sequences):
-            timestamp = float(timestamps_array[record_num, 
-                                                       sequence])
-            # power only. no averaging done. 
-            power = np.sqrt(voltage_samples.real**2 + 
-                            voltage_samples.imag**2)[sequence,
-                            start_sample:end_sample]
-            power_db = 10 * np.log10(power)
-            sequence_noise_db = 10 * np.log10(np.average(
-                                np.sort(power)[:10]))
-            power_list.append(power_db)
-            noise_list.append(sequence_noise_db)
-            max_snr_list.append(np.max(power_db[2:])-sequence_noise_db)
+            timestamp = float(timestamps_array[record_num, sequence])
             timestamps.append(float(timestamp))
+
+            # Get the raw power from the voltage samples
+            power = np.abs(voltage_samples)[sequence, start_sample:end_sample]
+            power_db = 10 * np.log10(power)
+            power_list.append(power_db)
+
+            # Average the 10 lowest power samples for this sequence, and call this the noise level
+            sequence_noise_db = 10 * np.log10(np.average(np.sort(power)[:10]))
+            noise_list.append(sequence_noise_db)
+
+            # Max SNR = maximum power - noise level
+            max_snr_list.append(np.max(power_db[2:])-sequence_noise_db)
+
     power_array = np.array(power_list)
     
     start_time = datetime.datetime.utcfromtimestamp(timestamps[0])
@@ -113,25 +117,22 @@ def plot_unaveraged_range_time_data(data_array, num_sequences_array, timestamps_
     # x_lims = mdates.date2num([start_time, end_time])
     # y_lims = [start_sample, end_sample]
     
-    # take the transpose to get sequences x samps for the antenna num
+    # take the transpose to get sequences x samps for the dataset
     new_power_array = np.transpose(power_array)
 
-    kw = {'width_ratios': [95,5]}
-    fig, ((ax1, cax1), (ax2, cax2)) = plt.subplots(2, 2, figsize=(32,16), 
-                gridspec_kw=kw)
-    fig.suptitle('{} PWR Sequence Time {} {} to {} UT vs Range'.format(
-            dataset_descriptor, start_time.strftime('%Y%m%d'), 
-            start_time.strftime('%H:%M:%S'), end_time.strftime('%H:%M:%S')))
+    kw = {'width_ratios': [95, 5]}
+    fig, ((ax1, cax1), (ax2, cax2)) = plt.subplots(2, 2, figsize=(32, 16), gridspec_kw=kw)
+    fig.suptitle(f'{dataset_descriptor} Raw Power Sequence Time {start_time.strftime("%Y%m%d")} '
+                 f'{start_time.strftime("%H:%M:%S")} to {end_time.strftime("%H:%M:%S")} UT vs Range')
 
-    # plot SNR and noise (10 weakest ranges average)
+    # plot SNR and noise
     ax1.plot(range(len(max_snr_list)), max_snr_list)
     ax1.set_title('Max SNR in sequence')
     ax1.set_ylabel('SNR (dB)')
 
-    img = ax2.imshow(new_power_array, aspect='auto', origin='lower', 
-                    cmap=plt.get_cmap('gnuplot2'), vmax=vmax, vmin=vmin)
-    ax2.set_title('Range-time based on samples {} to {}'.format(start_sample,
-                                end_sample))
+    img = ax2.imshow(new_power_array, aspect='auto', origin='lower', cmap=plt.get_cmap('gnuplot2'), vmax=vmax,
+                     vmin=vmin)
+    ax2.set_title(f'Range-time based on samples {start_sample} to {end_sample}')
     ax2.set_ylabel('Sample number (Range)')
     ax2.set_xlabel('Sequence number (spans time)')
 
@@ -163,7 +164,7 @@ def plot_antennas_range_time(antennas_iq_file, antenna_nums=None, num_processes=
 
     Gets the samples between start_sample and end_sample for every
     sequence in the file, calculates their power, and plots these sequences side
-    by side. Uses gnuplot2 color map. 
+    by side. Uses gnuplot2 color map.
 
     Parameters 
     ----------
@@ -260,7 +261,7 @@ def plot_arrays_range_time(bfiq_file, beam_nums=None, num_processes=3, vmax=50.0
 
     Gets the samples between start_sample and end_sample for every
     sequence in the file, calculates their power, and plots these sequences side
-    by side. Uses gnuplot2 color map. 
+    by side. Uses gnuplot2 color map.
 
     Parameters 
     ----------
@@ -489,7 +490,7 @@ def plot_rawacf_lag_pwr(rawacf_file, beam_nums=None, lag_nums=[0],
 
     Gets the samples between start_sample and end_sample for every
     sequence in the file, calculates their power, and plots these sequences side
-    by side. Uses gnuplot2 color map. 
+    by side. Uses gnuplot2 color map.
 
     Parameters 
     ----------
