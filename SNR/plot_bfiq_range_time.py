@@ -39,7 +39,7 @@ def plot_parser():
     parser.add_argument("--max-power", help="Maximum Power of color scale (dB).", default=50.0, type=float)
     parser.add_argument("--min-power", help="Minimum Power of color scale (dB).", default=10.0, type=float)
     parser.add_argument("--start-sample", help="Sample Number to start at.", default=0, type=int)
-    parser.add_argument("--end-sample", help="Sample Number to end at.", default=80, type=int)
+    parser.add_argument("--end-sample", help="Sample Number to end at.", default=70, type=int)
     return parser
 
 
