@@ -35,7 +35,7 @@ def usage_msg():
 def plot_parser():
     parser = argparse.ArgumentParser(usage=usage_msg())
     parser.add_argument("antennas_iq_file", help="Name of the file to plot.")
-    parser.add_argument("--antenna-nums", help="Antenna indices to plot.")
+    parser.add_argument("--antennas", help="Antenna indices to plot. Format as --antennas=0,2-4,8")
     parser.add_argument("--max-power", help="Maximum Power of color scale (dB).", default=40.0)
     parser.add_argument("--min-power", help="Minimum Power of color scale (dB).", default=10.0)
     parser.add_argument("--start-sample", help="Sample Number to start at.", default=0)
@@ -48,7 +48,18 @@ if __name__ == '__main__':
     args = args_parser.parse_args()
 
     filename = args.antennas_iq_file
-    
+
+    antenna_nums = []
+    if args.antennas is not None:
+        antennas = args.antennas.split(',')
+        for antenna in antennas:
+            # If they specified a range, then include all numbers in that range (including endpoints)
+            if '-' in antenna:
+                small_antenna, big_antenna = antenna.split('-')
+                antenna_nums.extend(range(int(small_antenna), int(big_antenna) + 1))
+            else:
+                antenna_nums.append(int(antenna))
+
     plot_antennas_range_time(filename, antenna_nums=args.antenna_nums, num_processes=3, vmax=args.max_power,
                              vmin=args.min_power, start_sample=args.start_sample, end_sample=args.end_sample)
 
