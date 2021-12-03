@@ -130,7 +130,7 @@ def plot_unaveraged_range_time_data(data_array, num_sequences_array, timestamps_
     ax1.set_title('Max SNR in sequence')
     ax1.set_ylabel('SNR (dB)')
 
-    img = ax2.imshow(new_power_array, aspect='auto', origin='lower', cmap=plt.get_cmap('gnuplot2'), vmax=vmax,
+    img = ax2.imshow(new_power_array, aspect='auto', origin='lower', cmap=plt.get_cmap('plasma'), vmax=vmax,
                      vmin=vmin)
     ax2.set_title(f'Range-time based on samples {start_sample} to {end_sample}')
     ax2.set_ylabel('Sample number (Range)')
@@ -164,7 +164,7 @@ def plot_antennas_range_time(antennas_iq_file, antenna_nums=None, num_processes=
 
     Gets the samples between start_sample and end_sample for every
     sequence in the file, calculates their power, and plots these sequences side
-    by side. Uses gnuplot2 color map.
+    by side. Uses plasma color map.
 
     Parameters 
     ----------
@@ -261,7 +261,7 @@ def plot_arrays_range_time(bfiq_file, beam_nums=None, num_processes=3, vmax=50.0
 
     Gets the samples between start_sample and end_sample for every
     sequence in the file, calculates their power, and plots these sequences side
-    by side. Uses gnuplot2 color map.
+    by side. Uses plasma color map.
 
     Parameters 
     ----------
@@ -368,8 +368,8 @@ def plot_arrays_range_time(bfiq_file, beam_nums=None, num_processes=3, vmax=50.0
     #     intf_power_array = np.transpose(np.array(intf_power_dict[beam])[:,0:69])
     #     print(main_power_array.shape)
     #     fig, (ax1, ax2, cax) = plt.subplots(nrows=3, figsize=(32,24), gridspec_kw={'height_ratios':[0.4,0.4,0.1]})
-    #     img1 = ax1.imshow(main_power_array, aspect='auto', origin='lower', cmap=plt.get_cmap('gnuplot2'), vmax=vmax, vmin=vmin) #
-    #     img2 = ax2.imshow(intf_power_array, aspect='auto', origin='lower', cmap=plt.get_cmap('gnuplot2'), vmax=vmax, vmin=vmin)
+    #     img1 = ax1.imshow(main_power_array, aspect='auto', origin='lower', cmap=plt.get_cmap('plasma'), vmax=vmax, vmin=vmin) #
+    #     img2 = ax2.imshow(intf_power_array, aspect='auto', origin='lower', cmap=plt.get_cmap('plasma'), vmax=vmax, vmin=vmin)
     #     fig.colorbar(img1, cax=cax, orientation='horizontal')
 
     #     basename = bfiq_file.split('/')[-1]
@@ -453,7 +453,7 @@ def plot_averaged_range_time_data(data_array, timestamps_array,
     ax1.set_ylabel('SNR (dB)')
 
     img = ax2.imshow(new_power_array, aspect='auto', origin='lower', 
-                    cmap=plt.get_cmap('gnuplot2'), vmax=vmax, vmin=vmin)
+                    cmap=plt.get_cmap('plasma'), vmax=vmax, vmin=vmin)
     ax2.set_title('Range-time plot')
     ax2.set_ylabel('Range gate number')
     ax2.set_xlabel('Record number (spans time)')
@@ -490,7 +490,7 @@ def plot_rawacf_lag_pwr(rawacf_file, beam_nums=None, lag_nums=[0],
 
     Gets the samples between start_sample and end_sample for every
     sequence in the file, calculates their power, and plots these sequences side
-    by side. Uses gnuplot2 color map.
+    by side. Uses plasma color map.
 
     Parameters 
     ----------
