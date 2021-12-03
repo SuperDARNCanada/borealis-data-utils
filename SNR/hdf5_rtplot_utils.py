@@ -1,6 +1,6 @@
 # Copyright 2019 SuperDARN Canada, University of Saskatchewan
 # Author: Marci Detwiller
-
+# Modified: Dec. 2, 2021 (Remington Rohel)
 """
 This module contains plotting functions for range time plots 
 from Borealis HDF5 files of the following types:

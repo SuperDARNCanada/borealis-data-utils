@@ -43,8 +43,8 @@ def plot_parser():
 
 
 if __name__ == '__main__':
-    args_parser = plot_parser()
-    args = args_parser.parse_args()
+    antennas_iq_parser = plot_parser()
+    args = antennas_iq_parser.parse_args()
 
     filename = args.antennas_iq_file
 

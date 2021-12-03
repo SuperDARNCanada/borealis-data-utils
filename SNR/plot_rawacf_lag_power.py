@@ -1,5 +1,6 @@
 # Copyright 2019 SuperDARN Canada, University of Saskatchewan
 # Author: Marci Detwiller
+# Modified: Dec. 3, 2021 (Remington Rohel)
 
 """
 This script is used to plot all beams, lag zero, main_acfs, intf_acfs,
@@ -7,12 +8,8 @@ and xcfs power.
 """
 
 import argparse
-import copy
-import glob
-import os
-import sys
-
 from hdf5_rtplot_utils import plot_rawacf_lag_pwr
+
 
 def usage_msg():
     """
@@ -48,8 +45,8 @@ def plot_parser():
 
 
 if __name__ == '__main__':
-    parser = plot_parser()
-    args = parser.parse_args()
+    rawacf_parser = plot_parser()
+    args = rawacf_parser.parse_args()
 
     filename = args.rawacf_file
 
