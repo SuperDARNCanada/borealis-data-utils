@@ -200,14 +200,14 @@ def plot_antennas_range_time(antennas_iq_file, antenna_nums=None, num_processes=
 
     # typically, antenna names and antenna indices are the same except
     # where certain antennas were skipped in data writing for any reason.
-    if antenna_nums is None:
+    if antenna_nums is None or len(antenna_nums) == 0:
         antenna_indices = list(range(0, num_antennas))
         antenna_names = list(arrays['antenna_arrays_order'])
     else:
         antenna_indices = []
-        antenna_names = antenna_nums
+        antenna_names = [f'Antenna {a}' for a in antenna_nums]
         for antenna_name in antenna_nums:
-            antenna_indices.append(arrays['antenna_arrays_order'].index('antenna_' + str(antenna_name)))
+            antenna_indices.append(list(arrays['antenna_arrays_order']).index('antenna_' + str(antenna_name)))
 
     sequences_data = arrays['num_sequences']
     timestamps_data = arrays['sqn_timestamps']
