@@ -130,8 +130,7 @@ def plot_unaveraged_range_time_data(data_array, num_sequences_array, timestamps_
     ax1.set_title('Max SNR in sequence')
     ax1.set_ylabel('SNR (dB)')
 
-    img = ax2.imshow(new_power_array, aspect='auto', origin='lower', cmap=plt.get_cmap('plasma'), vmax=vmax,
-                     vmin=vmin)
+    img = ax2.imshow(new_power_array, aspect='auto', origin='lower', cmap=plt.get_cmap('plasma'), vmax=vmax, vmin=vmin)
     ax2.set_title(f'Range-time based on samples {start_sample} to {end_sample}')
     ax2.set_ylabel('Sample number (Range)')
     ax2.set_xlabel('Sequence number (spans time)')
@@ -156,8 +155,8 @@ def plot_unaveraged_range_time_data(data_array, num_sequences_array, timestamps_
     plt.close() 
 
 
-def plot_antennas_range_time(antennas_iq_file, antenna_nums=None, num_processes=3, vmax=40.0, vmin=10.0,
-                             start_sample=0, end_sample=80):
+def plot_antennas_range_time(antennas_iq_file, antenna_nums=None, num_processes=3, vmax=40.0, vmin=10.0, start_sample=0,
+                             end_sample=70):
     """ 
     Plots unaveraged range time data from echoes received in every sequence
     for a single antenna.
@@ -169,8 +168,7 @@ def plot_antennas_range_time(antennas_iq_file, antenna_nums=None, num_processes=
     Parameters 
     ----------
     antennas_iq_file
-        The filename that you are plotting data from for plot title. The file
-        should be array restructured.
+        The filename that you are plotting data from for plot title.
     antenna_nums
         List of antennas you want to plot. This is the antenna number 
         as listed in the antenna_arrays_order. The index into the data array
@@ -192,8 +190,7 @@ def plot_antennas_range_time(antennas_iq_file, antenna_nums=None, num_processes=
         will plot.
     """ 
 
-    reader = BorealisRead(antennas_iq_file, 'antennas_iq', 
-                          borealis_file_structure='array')
+    reader = BorealisRead(antennas_iq_file, 'antennas_iq')
     arrays = reader.arrays
 
     (num_records, num_antennas, max_num_sequences, num_samps) = \
@@ -203,31 +200,28 @@ def plot_antennas_range_time(antennas_iq_file, antenna_nums=None, num_processes=
     directory_name = os.path.dirname(antennas_iq_file)
     time_of_plot = '.'.join(basename.split('.')[0:6])
 
-    # typically antenna names and antenna indices are the same except 
+    # typically, antenna names and antenna indices are the same except
     # where certain antennas were skipped in data writing for any reason.
     if antenna_nums is None:
         antenna_indices = list(range(0, num_antennas))
-        antenna_names =  list(arrays['antenna_arrays_order'])
+        antenna_names = list(arrays['antenna_arrays_order'])
     else:
         antenna_indices = []
         antenna_names = antenna_nums
         for antenna_name in antenna_nums:
-            antenna_indices.append(arrays['antenna_arrays_order'].index(
-                'antenna_' + str(antenna_name)))
+            antenna_indices.append(arrays['antenna_arrays_order'].index('antenna_' + str(antenna_name)))
 
     sequences_data = arrays['num_sequences']
     timestamps_data = arrays['sqn_timestamps']
 
     arg_tuples = []
     print(antennas_iq_file)
+
     for antenna_num, antenna_name in zip(antenna_indices, antenna_names):
-        antenna_data = arrays['data'][:,antenna_num,:,:]   
-        plot_filename = directory_name + '/' + time_of_plot + \
-                   '.{}_{}_{}.png'.format(antenna_name, start_sample,
-                                          end_sample)
-        arg_tuples.append((copy.copy(antenna_data), sequences_data, 
-            timestamps_data, antenna_name, plot_filename, vmax, vmin, 
-            start_sample, end_sample))
+        antenna_data = arrays['data'][:, antenna_num, :, :]
+        plot_filename = f'{directory_name}/{time_of_plot}.{antenna_name}_{start_sample}_{end_sample}.png'
+        arg_tuples.append((copy.copy(antenna_data), sequences_data, timestamps_data, antenna_name, plot_filename, vmax,
+                           vmin, start_sample, end_sample))
 
     jobs = []
     antennas_index = 0
@@ -242,8 +236,7 @@ def plot_antennas_range_time(antennas_iq_file, antenna_nums=None, num_processes=
                     raise
                 antennas_left = False
                 break
-            p = Process(target=plot_unaveraged_range_time_data, 
-                args=antenna_args)
+            p = Process(target=plot_unaveraged_range_time_data, args=antenna_args)
             jobs.append(p)
             p.start()
 
@@ -266,8 +259,7 @@ def plot_arrays_range_time(bfiq_file, beam_nums=None, num_processes=3, vmax=50.0
     Parameters 
     ----------
     bfiq_file
-        The filename that you are plotting data from for plot title. The file
-        should be array restructured.
+        The filename that you are plotting data from for plot title.
     beam_nums
         The list of beam numbers to plot. Default None which allows all beams 
         available in the file to be plotted.
@@ -284,7 +276,7 @@ def plot_arrays_range_time(bfiq_file, beam_nums=None, num_processes=3, vmax=50.0
         will plot.
     """ 
 
-    reader = BorealisRead(bfiq_file, 'bfiq', borealis_file_structure='array')
+    reader = BorealisRead(bfiq_file, 'bfiq')
     arrays = reader.arrays
 
     (num_records, num_antenna_arrays, max_num_sequences, max_num_beams, num_samps) = arrays['data'].shape
@@ -321,7 +313,7 @@ def plot_arrays_range_time(bfiq_file, beam_nums=None, num_processes=3, vmax=50.0
         beam_sequences_data = np.empty(0)
         beam_arrays_data = np.empty((0, num_antenna_arrays, max_num_sequences, num_samps))
 
-        for record_num in range(0, num_records):
+        for record_num in range(0, 4):
             if beam_name in arrays['beam_nums'][record_num]:
                 beam_index = list(arrays['beam_nums'][record_num]).index(beam_name)
                 beam_timestamps_data = np.concatenate((beam_timestamps_data,
@@ -334,12 +326,11 @@ def plot_arrays_range_time(bfiq_file, beam_nums=None, num_processes=3, vmax=50.0
                                                               (1, num_antenna_arrays, max_num_sequences, num_samps))))
 
         for array_num, array_name in enumerate(arrays['antenna_arrays_order']):
-            plot_filename = directory_name + '/' + time_of_plot + \
-                            f'.{array_name}_beam{str(beam_name)}_{start_sample}_{end_sample}.png'
-            descriptor = array_name + ' beam ' + str(beam_name)
-            arg_tuples.append((copy.copy(beam_arrays_data[:, array_num, :, :]),
-                               beam_sequences_data, beam_timestamps_data, descriptor, plot_filename, vmax, vmin,
-                               start_sample, end_sample))
+            plot_filename = f'{directory_name}/{time_of_plot}.{array_name}_beam{str(beam_name)}_{start_sample}_' \
+                            f'{end_sample}.png'
+            descriptor = f'{array_name} beam {str(beam_name)}'
+            arg_tuples.append((copy.copy(beam_arrays_data[:, array_num, :, :]), beam_sequences_data,
+                               beam_timestamps_data, descriptor, plot_filename, vmax, vmin, start_sample, end_sample))
 
     jobs = []
     plots_index = 0
@@ -368,8 +359,10 @@ def plot_arrays_range_time(bfiq_file, beam_nums=None, num_processes=3, vmax=50.0
     #     intf_power_array = np.transpose(np.array(intf_power_dict[beam])[:,0:69])
     #     print(main_power_array.shape)
     #     fig, (ax1, ax2, cax) = plt.subplots(nrows=3, figsize=(32,24), gridspec_kw={'height_ratios':[0.4,0.4,0.1]})
-    #     img1 = ax1.imshow(main_power_array, aspect='auto', origin='lower', cmap=plt.get_cmap('plasma'), vmax=vmax, vmin=vmin) #
-    #     img2 = ax2.imshow(intf_power_array, aspect='auto', origin='lower', cmap=plt.get_cmap('plasma'), vmax=vmax, vmin=vmin)
+    #     img1 = ax1.imshow(main_power_array, aspect='auto', origin='lower', cmap=plt.get_cmap('plasma'), vmax=vmax,
+    #                       vmin=vmin)
+    #     img2 = ax2.imshow(intf_power_array, aspect='auto', origin='lower', cmap=plt.get_cmap('plasma'), vmax=vmax,
+    #                       vmin=vmin)
     #     fig.colorbar(img1, cax=cax, orientation='horizontal')
 
     #     basename = bfiq_file.split('/')[-1]
@@ -378,13 +371,13 @@ def plot_arrays_range_time(bfiq_file, beam_nums=None, num_processes=3, vmax=50.0
     #     print(plotname)
     #     plt.savefig(plotname)
     #     plt.close()
-    #     snr = np.max(main_power_array) - np.mean(main_power_array[:,10], axis=0) # use average of a close range as noise floor, see very little there (45 * 7 = 315 km range)
+    #     use average of a close range as noise floor, see very little there (45 * 7 = 315 km range)
+    #     snr = np.max(main_power_array) - np.mean(main_power_array[:,10], axis=0)
     #     print('Ave of array: {}'.format(np.average(main_power_array)))
     #     print('FILE {} beam {} main array snr: {}'.format(bfiq_file,beam,snr))
 
 
-def plot_averaged_range_time_data(data_array, timestamps_array, 
-    dataset_descriptor, plot_filename, vmax, vmin):
+def plot_averaged_range_time_data(data_array, timestamps_array, dataset_descriptor, plot_filename, vmax, vmin):
     """
     Plots data as range time given an array with correct dimensions. Also
     plots SNR by finding the ratio of max power in the sequence to average 
@@ -411,25 +404,30 @@ def plot_averaged_range_time_data(data_array, timestamps_array,
     print(dataset_descriptor)
     (num_records, num_samps) = data_array.shape
 
-    power_list = [] # list of lists of power
-    timestamps = [] # list of timestamps
-    noise_list = [] # list of (average of ten weakest ranges in sample range)
-    max_snr_list = [] # max power - noise (ave of 10 weakest ranges)
+    power_list = []     # list of lists of power
+    timestamps = []     # list of timestamps
+    noise_list = []     # list of (average of ten weakest ranges in sample range)
+    max_snr_list = []   # max power - noise (ave of 10 weakest ranges)
+
     for record_num in range(num_records):
         # get all ranges for this record
-        voltage_samples = data_array[record_num,:]
+        voltage_samples = data_array[record_num, :]
+
         # get first timestamp in this record.
         timestamp = float(timestamps_array[record_num, 0])
-        # power only. no averaging done. 
+        timestamps.append(timestamp)
+
+        # Raw power only, no averaging
         power = np.sqrt(abs(voltage_samples))
         power_db = 10 * np.log10(power)
-        # set noise to ave of 10 lowest ranges
-        record_noise_db = 10 * np.log10(np.average(
-                            np.sort(power)[:10]))
         power_list.append(power_db)
+
+        # set noise to average of 10 lowest ranges
+        record_noise_db = 10 * np.log10(np.average(np.sort(power)[:10]))
         noise_list.append(record_noise_db)
+
+        # Maximum Power - noise for the sequence
         max_snr_list.append(np.max(power_db[2:]) - record_noise_db)
-        timestamps.append(timestamp)
 
     # want records x ranges
     new_power_array = np.transpose(np.array(power_list))
@@ -440,20 +438,17 @@ def plot_averaged_range_time_data(data_array, timestamps_array,
     # x_lims = mdates.date2num([start_time, end_time])
     # y_lims = [start_sample, end_sample]
 
-    kw = {'width_ratios': [95,5]}
-    fig, ((ax1, cax1), (ax2, cax2)) = plt.subplots(2, 2, figsize=(32,16), 
-                gridspec_kw=kw)
-    fig.suptitle('{} PWR Time {} {} to {} UT vs Range'.format(
-            dataset_descriptor, start_time.strftime('%Y%m%d'), 
-            start_time.strftime('%H:%M:%S'), end_time.strftime('%H:%M:%S')))
+    kw = {'width_ratios': [95, 5]}
+    fig, ((ax1, cax1), (ax2, cax2)) = plt.subplots(2, 2, figsize=(32, 16), gridspec_kw=kw)
+    fig.suptitle(f'{dataset_descriptor} PWR Time {start_time.strftime("%Y%m%d")} {start_time.strftime("%H:%M:%S")} to '
+                 f'{end_time.strftime("%H:%M:%S")} UT vs Range')
 
     # plot SNR and noise (10 weakest ranges average)
     ax1.plot(range(len(max_snr_list)), max_snr_list)
     ax1.set_title('Max SNR in record')
     ax1.set_ylabel('SNR (dB)')
 
-    img = ax2.imshow(new_power_array, aspect='auto', origin='lower', 
-                    cmap=plt.get_cmap('plasma'), vmax=vmax, vmin=vmin)
+    img = ax2.imshow(new_power_array, aspect='auto', origin='lower', cmap=plt.get_cmap('plasma'), vmax=vmax, vmin=vmin)
     ax2.set_title('Range-time plot')
     ax2.set_ylabel('Range gate number')
     ax2.set_xlabel('Record number (spans time)')
@@ -469,7 +464,7 @@ def plot_averaged_range_time_data(data_array, timestamps_array,
     # ax2.xaxis.set_major_formatter(date_format)
     # fig.autofmt_xdate()
     # ax2.tick_params(axis='x', which='major', labelsize='15')
-    fig.colorbar(img, cax=cax2, label='SNR')
+    fig.colorbar(img, cax=cax2, label='Raw Power (dB)')
     cax1.axis('off') 
 
     ax2.get_shared_x_axes().join(ax1, ax2)
@@ -495,8 +490,7 @@ def plot_rawacf_lag_pwr(rawacf_file, beam_nums=None, lag_nums=[0],
     Parameters 
     ----------
     rawacf_file
-        The filename that you are plotting data from for plot title. The file
-        should be array restructured.
+        The filename that you are plotting data from for plot title.
     beam_nums
         The list of beam numbers to plot. Default None which allows all beams 
         available in the file to be plotted.
@@ -509,17 +503,15 @@ def plot_rawacf_lag_pwr(rawacf_file, beam_nums=None, lag_nums=[0],
         The number of processes to use to plot the data from the beam_nums
         and lag_nums
     vmax
-        Max power for the color bar on the plot. Default 60 dB.
+        Max power for the color bar on the plot. Default 50 dB.
     vmin
         Min power for the color bar on the plot.  Default 10 dB. 
     """
 
-    reader = BorealisRead(rawacf_file, 'rawacf', 
-                          borealis_file_structure='array')
+    reader = BorealisRead(rawacf_file, 'rawacf')
     arrays = reader.arrays
 
-    (num_records, max_num_beams, num_ranges, num_lags) = \
-        arrays['main_acfs'].shape
+    (num_records, max_num_beams, num_ranges, num_lags) = arrays['main_acfs'].shape
     max_num_sequences = arrays['sqn_timestamps'].shape[1]
 
     basename = os.path.basename(rawacf_file)
@@ -533,8 +525,7 @@ def plot_rawacf_lag_pwr(rawacf_file, beam_nums=None, lag_nums=[0],
         all_beams = np.empty(0, dtype=np.uint32)
         for record_num in range(0, num_records):
             num_beams_in_record = int(arrays['num_beams'][record_num])
-            all_beams = np.concatenate((all_beams, arrays['beam_nums'][
-                record_num,:num_beams_in_record]))
+            all_beams = np.concatenate((all_beams, arrays['beam_nums'][record_num, :num_beams_in_record]))
         beam_names = np.unique(all_beams)
     else:
         beam_names = np.array(beam_nums, dtype=np.uint32)
@@ -550,14 +541,11 @@ def plot_rawacf_lag_pwr(rawacf_file, beam_nums=None, lag_nums=[0],
             try:
                 lag_indices.append(all_lag_nums.index(lag_num))
             except ValueError as e:
-                raise ValueError('Lag number {} is not found in the file'
-                                 .format(lag_num))
+                raise ValueError(f'Lag number {lag_num} is not found in the file')
 
     for dataset in datasets:
         if dataset not in ['main_acfs', 'intf_acfs', 'xcfs']:
-            raise ValueError('Dataset not available in rawacf file: {}'
-                             .format(dataset))
-        
+            raise ValueError(f'Dataset not available in rawacf file: {dataset}')
 
     arg_tuples = []
     print(rawacf_file)
@@ -566,32 +554,27 @@ def plot_rawacf_lag_pwr(rawacf_file, beam_nums=None, lag_nums=[0],
         # find only the data with this beam name
         # data will be num_records avail (with this beam and lag number)
         # to plot x num_ranges
-        beam_timestamps_data = np.empty((0,max_num_sequences))
+        beam_timestamps_data = np.empty((0, max_num_sequences))
         for lag_index, lag_num in zip(lag_indices, lag_nums):
             beam_lag_dict = {}
             for dataset in datasets:
                 beam_lag_dict[dataset] = np.empty((0, num_ranges))
-            for record_num in range(0, num_records):
+            for record_num in range(0, 4):
                 if beam_name in arrays['beam_nums'][record_num]:
                     beam_index = list(arrays['beam_nums'][record_num]).index(beam_name)
                     beam_timestamps_data = np.concatenate((beam_timestamps_data,
-                        np.reshape(arrays['sqn_timestamps'][record_num], (1, 
-                            max_num_sequences))))
+                                                           np.reshape(arrays['sqn_timestamps'][record_num],
+                                                                      (1, max_num_sequences))))
                     for dataset in datasets:
-                        beam_lag_dict[dataset] = np.concatenate((
-                            beam_lag_dict[dataset],
-                            np.reshape(arrays[dataset][record_num,beam_index,
-                                :,lag_index], (1, num_ranges))))
+                        beam_lag_dict[dataset] = np.concatenate(
+                            (beam_lag_dict[dataset], np.reshape(arrays[dataset][record_num, beam_index, :, lag_index],
+                                                                (1, num_ranges))))
 
             for dataset in datasets:
-                plot_filename = directory_name + '/' + time_of_plot + \
-                           '.{}_beam{}_lag{}.png'.format(dataset, beam_name,
-                                                lag_num)
-                descriptor = dataset + ' beam ' + str(int(beam_name)) + ' lag ' + \
-                    str(lag_num)
-                arg_tuples.append((copy.copy(beam_lag_dict[dataset]), 
-                    beam_timestamps_data, descriptor, plot_filename, vmax, 
-                    vmin))
+                plot_filename = f'{directory_name}/{time_of_plot}.{dataset}_beam{beam_name}_lag{lag_num}.png'
+                descriptor = f'{dataset} beam {str(int(beam_name))} lag {str(lag_num)}'
+                arg_tuples.append((copy.copy(beam_lag_dict[dataset]), beam_timestamps_data, descriptor, plot_filename,
+                                   vmax, vmin))
 
     jobs = []
     plots_index = 0
@@ -614,4 +597,3 @@ def plot_rawacf_lag_pwr(rawacf_file, beam_nums=None, lag_nums=[0],
             proc.join()
 
         plots_index += num_processes
-
