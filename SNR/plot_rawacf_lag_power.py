@@ -61,8 +61,6 @@ if __name__ == '__main__':
             else:
                 beam_nums.append(int(beam))
 
-    print(beam_nums)
-
     lag_nums = []
     if args.lags is not None:
         lags = args.lags.split(',')
@@ -74,14 +72,10 @@ if __name__ == '__main__':
             else:
                 lag_nums.append(int(lag))
 
-    print(lag_nums)
-
     if args.datasets is not None:
         datasets = args.datasets.split(',')
     else:
         datasets = None
-
-    print(datasets)
 
     plot_rawacf_lag_pwr(filename, beam_nums=beam_nums, lag_nums=lag_nums, datasets=datasets, num_processes=3,
                         vmax=args.max_power, vmin=args.min_power)

@@ -60,6 +60,5 @@ if __name__ == '__main__':
             else:
                 beam_nums.append(int(beam))
 
-    print(beam_nums)
     plot_arrays_range_time(filename, beam_nums=beam_nums, num_processes=3, vmax=args.max_power, vmin=args.min_power,
                            start_sample=args.start_sample, end_sample=args.end_sample)
