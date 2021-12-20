@@ -205,7 +205,7 @@ def plot_antennas_range_time(antennas_iq_file, antenna_nums=None, num_processes=
         antenna_names = list(arrays['antenna_arrays_order'])
     else:
         antenna_indices = []
-        antenna_names = [f'Antenna {a}' for a in antenna_nums]
+        antenna_names = [f'antenna_{a}' for a in antenna_nums]
         for antenna_name in antenna_nums:
             antenna_indices.append(list(arrays['antenna_arrays_order']).index('antenna_' + str(antenna_name)))
 
