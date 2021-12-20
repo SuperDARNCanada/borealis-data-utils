@@ -41,6 +41,8 @@ import os
 from pydarnio import BorealisRead
 from multiprocessing import Process
 
+from SNR.minimal_restructuring import antennas_iq_site_to_array
+
 matplotlib.use('Agg')
 plt.rcParams.update({'font.size': 28})
 
@@ -189,14 +191,7 @@ def plot_antennas_range_time(antennas_iq_file, antenna_nums=None, num_processes=
     plot_directory
         The directory that generated plots will be saved in. Default '', which
         will save plots in the same location as the input file.
-    """ 
-
-    reader = BorealisRead(antennas_iq_file, 'antennas_iq')
-    arrays = reader.arrays
-
-    (num_records, num_antennas, max_num_sequences, num_samps) = \
-        arrays['data'].shape
-
+    """
     basename = os.path.basename(antennas_iq_file)
 
     if plot_directory == '':
@@ -209,16 +204,27 @@ def plot_antennas_range_time(antennas_iq_file, antenna_nums=None, num_processes=
 
     time_of_plot = '.'.join(basename.split('.')[0:6])
 
-    # typically, antenna names and antenna indices are the same except
-    # where certain antennas were skipped in data writing for any reason.
-    if antenna_nums is None or len(antenna_nums) == 0:
-        antenna_indices = list(range(0, num_antennas))
-        antenna_names = list(arrays['antenna_arrays_order'])
+    # Try to guess the correct file structure
+    if "site" in antennas_iq_file:
+        arrays, antenna_names, antenna_indices = antennas_iq_site_to_array(antennas_iq_file, antenna_nums)
+        # reader = BorealisRead(antennas_iq_file, 'antennas_iq', 'site')
     else:
-        antenna_indices = []
-        antenna_names = [f'antenna_{a}' for a in antenna_nums]
-        for antenna_name in antenna_nums:
-            antenna_indices.append(list(arrays['antenna_arrays_order']).index('antenna_' + str(antenna_name)))
+        reader = BorealisRead(antennas_iq_file, 'antennas_iq', 'array')
+        arrays = reader.arrays
+
+        (num_records, num_antennas, max_num_sequences, num_samps) = \
+            arrays['data'].shape
+
+        # typically, antenna names and antenna indices are the same except
+        # where certain antennas were skipped in data writing for any reason.
+        if antenna_nums is None or len(antenna_nums) == 0:
+            antenna_indices = list(range(0, num_antennas))
+            antenna_names = list(arrays['antenna_arrays_order'])
+        else:
+            antenna_indices = []
+            antenna_names = [f'antenna_{a}' for a in antenna_nums]
+            for antenna_name in antenna_nums:
+                antenna_indices.append(list(arrays['antenna_arrays_order']).index('antenna_' + str(antenna_name)))
 
     sequences_data = arrays['num_sequences']
     timestamps_data = arrays['sqn_timestamps']
@@ -286,9 +292,12 @@ def plot_arrays_range_time(bfiq_file, beam_nums=None, num_processes=3, vmax=50.0
     plot_directory
         The directory that generated plots will be saved in. Default '', which
         will save plots in the same location as the input file.
-    """ 
-
-    reader = BorealisRead(bfiq_file, 'bfiq')
+    """
+    # Try to guess the correct file structure
+    if "site" in bfiq_file:
+        reader = BorealisRead(bfiq_file, 'bfiq', 'site')
+    else:
+        reader = BorealisRead(bfiq_file, 'bfiq', 'array')
     arrays = reader.arrays
 
     (num_records, num_antenna_arrays, max_num_sequences, max_num_beams, num_samps) = arrays['data'].shape
@@ -529,8 +538,11 @@ def plot_rawacf_lag_pwr(rawacf_file, beam_nums=None, lag_nums=None, datasets=Non
         The directory that generated plots will be saved in. Default '', which
         will save plots in the same location as the input file.
     """
-
-    reader = BorealisRead(rawacf_file, 'rawacf')
+    # Try to guess the correct file structure
+    if "site" in rawacf_file:
+        reader = BorealisRead(rawacf_file, 'rawacf', 'site')
+    else:
+        reader = BorealisRead(rawacf_file, 'rawacf', 'array')
     arrays = reader.arrays
 
     (num_records, max_num_beams, num_ranges, num_lags) = arrays['main_acfs'].shape
