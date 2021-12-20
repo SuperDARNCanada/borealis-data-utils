@@ -22,7 +22,7 @@ def usage_msg():
         The usage message on how to use this 
     """
 
-    usage_message = """ plot_antennas_range_time.py [-h] antennas_iq_file --antennas --max-power --min-power --start-sample --end-sample
+    usage_message = """ plot_antennas_range_time.py [-h] antennas_iq_file
     
     Pass in the name of the antennas_iq file that you want to plot range time data from. 
     Antenna numbers will be plotted on separate plots.
@@ -35,10 +35,11 @@ def plot_parser():
     parser = argparse.ArgumentParser(usage=usage_msg())
     parser.add_argument("antennas_iq_file", help="Name of the file to plot.")
     parser.add_argument("--antennas", help="Antenna indices to plot. Format as --antennas=0,2-4,8")
-    parser.add_argument("--max-power", help="Maximum Power of color scale (dB).", default=40.0)
-    parser.add_argument("--min-power", help="Minimum Power of color scale (dB).", default=10.0)
-    parser.add_argument("--start-sample", help="Sample Number to start at.", default=0)
-    parser.add_argument("--end-sample", help="Sample Number to end at.", default=70)
+    parser.add_argument("--max-power", help="Maximum Power of color scale (dB).", default=40.0, type=float)
+    parser.add_argument("--min-power", help="Minimum Power of color scale (dB).", default=10.0, type=float)
+    parser.add_argument("--start-sample", help="Sample Number to start at.", default=0, type=int)
+    parser.add_argument("--end-sample", help="Sample Number to end at.", default=70, type=int)
+    parser.add_argument("--plot-directory", help="Directory to save plots.", default='', type=str)
     return parser
 
 
@@ -60,4 +61,5 @@ if __name__ == '__main__':
                 antenna_nums.append(int(antenna))
 
     plot_antennas_range_time(filename, antenna_nums=antenna_nums, num_processes=3, vmax=args.max_power,
-                             vmin=args.min_power, start_sample=args.start_sample, end_sample=args.end_sample)
+                             vmin=args.min_power, start_sample=args.start_sample, end_sample=args.end_sample,
+                             plot_directory=args.plot_directory)

@@ -23,7 +23,7 @@ def usage_msg():
         The usage message on how to use this 
     """
 
-    usage_message = """ plot_bfiq_range_time.py [-h] bfiq_file --beams --max-power --min-power --start-sample --end-sample
+    usage_message = """ plot_bfiq_range_time.py [-h] bfiq_file
     
     Pass in the name of the bfiq file that you want to plot range time data from. 
     All beams and arrays will be plotted on separate plots.
@@ -40,6 +40,7 @@ def plot_parser():
     parser.add_argument("--min-power", help="Minimum Power of color scale (dB).", default=10.0, type=float)
     parser.add_argument("--start-sample", help="Sample Number to start at.", default=0, type=int)
     parser.add_argument("--end-sample", help="Sample Number to end at.", default=70, type=int)
+    parser.add_argument("--plot-directory", help="Directory to save plots.", default='', type=str)
     return parser
 
 
@@ -61,4 +62,5 @@ if __name__ == '__main__':
                 beam_nums.append(int(beam))
 
     plot_arrays_range_time(filename, beam_nums=beam_nums, num_processes=3, vmax=args.max_power, vmin=args.min_power,
-                           start_sample=args.start_sample, end_sample=args.end_sample)
+                           start_sample=args.start_sample, end_sample=args.end_sample,
+                           plot_directory=args.plot_directory)

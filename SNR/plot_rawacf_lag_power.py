@@ -23,7 +23,7 @@ def usage_msg():
         The usage message on how to use this 
     """
 
-    usage_message = """ plot_rawacf_lag_power.py [-h] rawacf_file --beams --lags --datasets --max-power --min-power
+    usage_message = """ plot_rawacf_lag_power.py [-h] rawacf_file
     
     Pass in the name of the rawacf array-restructured file that you want 
     to plot range time data from. All ranges power will be plotted 
@@ -41,6 +41,7 @@ def plot_parser():
     parser.add_argument("--datasets", help="Datasets to plot. Format as --datasets=main_acfs,intf_acfs,xcfs", type=str)
     parser.add_argument("--max-power", help="Maximum Power of color scale (dB).", default=50.0, type=float)
     parser.add_argument("--min-power", help="Minimum Power of color scale (dB).", default=10.0, type=float)
+    parser.add_argument("--plot-directory", help="Directory to save plots.", default='', type=str)
     return parser
 
 
@@ -78,4 +79,4 @@ if __name__ == '__main__':
         datasets = None
 
     plot_rawacf_lag_pwr(filename, beam_nums=beam_nums, lag_nums=lag_nums, datasets=datasets, num_processes=3,
-                        vmax=args.max_power, vmin=args.min_power)
+                        vmax=args.max_power, vmin=args.min_power, plot_directory=args.plot_directory)

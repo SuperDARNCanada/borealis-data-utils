@@ -154,7 +154,7 @@ def plot_unaveraged_range_time_data(data_array, num_sequences_array, timestamps_
 
 
 def plot_antennas_range_time(antennas_iq_file, antenna_nums=None, num_processes=3, vmax=40.0, vmin=10.0, start_sample=0,
-                             end_sample=70):
+                             end_sample=70, plot_directory=''):
     """ 
     Plots unaveraged range time data from echoes received in every sequence
     for a single antenna.
@@ -186,6 +186,9 @@ def plot_antennas_range_time(antennas_iq_file, antenna_nums=None, num_processes=
     end_sample
         The last sample in the sequence to plot. Default 70 so ranges 0-69
         will plot.
+    plot_directory
+        The directory that generated plots will be saved in. Default '', which
+        will save plots in the same location as the input file.
     """ 
 
     reader = BorealisRead(antennas_iq_file, 'antennas_iq')
@@ -195,7 +198,15 @@ def plot_antennas_range_time(antennas_iq_file, antenna_nums=None, num_processes=
         arrays['data'].shape
 
     basename = os.path.basename(antennas_iq_file)
-    directory_name = os.path.dirname(antennas_iq_file)
+
+    if plot_directory == '':
+        directory_name = os.path.dirname(antennas_iq_file)
+    elif not os.path.exists(plot_directory):
+        directory_name = os.path.dirname(antennas_iq_file)
+        print(f"Plot directory {plot_directory} does not exist. Using directory {directory_name} instead.")
+    else:
+        directory_name = plot_directory
+
     time_of_plot = '.'.join(basename.split('.')[0:6])
 
     # typically, antenna names and antenna indices are the same except
@@ -245,7 +256,7 @@ def plot_antennas_range_time(antennas_iq_file, antenna_nums=None, num_processes=
 
 
 def plot_arrays_range_time(bfiq_file, beam_nums=None, num_processes=3, vmax=50.0, vmin=10.0, start_sample=0,
-                           end_sample=70):
+                           end_sample=70, plot_directory=''):
     """ 
     Plots unaveraged range time data from echoes received in every sequence
     for a single beam.
@@ -272,6 +283,9 @@ def plot_arrays_range_time(bfiq_file, beam_nums=None, num_processes=3, vmax=50.0
     end_sample
         The last sample in the sequence to plot. Default 70 so ranges 0-69
         will plot.
+    plot_directory
+        The directory that generated plots will be saved in. Default '', which
+        will save plots in the same location as the input file.
     """ 
 
     reader = BorealisRead(bfiq_file, 'bfiq')
@@ -280,7 +294,15 @@ def plot_arrays_range_time(bfiq_file, beam_nums=None, num_processes=3, vmax=50.0
     (num_records, num_antenna_arrays, max_num_sequences, max_num_beams, num_samps) = arrays['data'].shape
 
     basename = os.path.basename(bfiq_file)
-    directory_name = os.path.dirname(bfiq_file)
+
+    if plot_directory == '':
+        directory_name = os.path.dirname(bfiq_file)
+    elif not os.path.exists(plot_directory):
+        directory_name = os.path.dirname(bfiq_file)
+        print(f"Plot directory {plot_directory} does not exist. Using directory {directory_name} instead.")
+    else:
+        directory_name = plot_directory
+
     time_of_plot = '.'.join(basename.split('.')[0:6])
 
     # find the number of unique beams and their azimuths
@@ -472,7 +494,7 @@ def plot_averaged_range_time_data(data_array, timestamps_array, dataset_descript
 
 
 def plot_rawacf_lag_pwr(rawacf_file, beam_nums=None, lag_nums=None, datasets=None, num_processes=3, vmax=50.0,
-                        vmin=10.0):
+                        vmin=10.0, plot_directory=''):
     """
     Plots the lag xcf phase of rawacf.hdf5 file, lag number found via lag_index.
     
@@ -502,7 +524,10 @@ def plot_rawacf_lag_pwr(rawacf_file, beam_nums=None, lag_nums=None, datasets=Non
     vmax
         Max power for the color bar on the plot. Default 50 dB.
     vmin
-        Min power for the color bar on the plot.  Default 10 dB. 
+        Min power for the color bar on the plot.  Default 10 dB.
+    plot_directory
+        The directory that generated plots will be saved in. Default '', which
+        will save plots in the same location as the input file.
     """
 
     reader = BorealisRead(rawacf_file, 'rawacf')
@@ -512,7 +537,15 @@ def plot_rawacf_lag_pwr(rawacf_file, beam_nums=None, lag_nums=None, datasets=Non
     max_num_sequences = arrays['sqn_timestamps'].shape[1]
 
     basename = os.path.basename(rawacf_file)
-    directory_name = os.path.dirname(rawacf_file)
+
+    if plot_directory == '':
+        directory_name = os.path.dirname(rawacf_file)
+    elif not os.path.exists(plot_directory):
+        directory_name = os.path.dirname(rawacf_file)
+        print(f"Plot directory {plot_directory} does not exist. Using directory {directory_name} instead.")
+    else:
+        directory_name = plot_directory
+
     time_of_plot = '.'.join(basename.split('.')[0:6])
 
     # find the number of unique beams and their azimuths
