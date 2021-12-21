@@ -41,7 +41,7 @@ import os
 from pydarnio import BorealisRead
 from multiprocessing import Process
 
-from SNR.minimal_restructuring import antennas_iq_site_to_array
+from minimal_restructuring import antennas_iq_site_to_array
 
 matplotlib.use('Agg')
 plt.rcParams.update({'font.size': 28})
