@@ -232,7 +232,12 @@ def plot_antennas_range_time(antennas_iq_file, antenna_nums=None, num_processes=
     arg_tuples = []
     print(antennas_iq_file)
 
-    for antenna_num, antenna_name in zip(antenna_indices, antenna_names):
+    if "site" in antennas_iq_file:
+        iterable = enumerate(antenna_names)
+    else:
+        iterable = zip(antenna_indices, antenna_names)
+
+    for antenna_num, antenna_name in iterable:
         antenna_data = arrays['data'][:, antenna_num, :, :]
         plot_filename = f'{directory_name}/{time_of_plot}.{antenna_name}_{start_sample}_{end_sample}.png'
         arg_tuples.append((copy.copy(antenna_data), sequences_data, timestamps_data, antenna_name, plot_filename, vmax,

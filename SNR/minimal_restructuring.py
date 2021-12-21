@@ -78,7 +78,7 @@ def antennas_iq_site_to_array(antennas_iq_file, antenna_nums=None):
         num_antennas, num_seqs, num_samps = record['data_dimensions']
         timestamps_data[i, :num_seqs] = record['sqn_timestamps']
         data = record['data'].reshape(record['data_dimensions'])
-        data_array[i, antenna_indices, :num_seqs, :] = \
+        data_array[i, :, :num_seqs, :] = \
             data[antenna_indices, ...]
 
     # Copy to dictionary and return
