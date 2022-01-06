@@ -208,12 +208,10 @@ def plot_antennas_range_time(antennas_iq_file, antenna_nums=None, num_processes=
     # Try to guess the correct file structure
     if "site" in antennas_iq_file:
         arrays, antenna_names, antenna_indices = antennas_iq_site_to_array(antennas_iq_file, antenna_nums)
-        minimal_arrays = True   # Flag that the arrays returned contain only the minimum data possible
         # reader = BorealisRead(antennas_iq_file, 'antennas_iq', 'site')
     else:
         reader = BorealisRead(antennas_iq_file, 'antennas_iq', 'array')
         arrays = reader.arrays
-        minimal_arrays = False
 
         (num_records, num_antennas, max_num_sequences, num_samps) = \
             arrays['data'].shape
@@ -235,13 +233,13 @@ def plot_antennas_range_time(antennas_iq_file, antenna_nums=None, num_processes=
     arg_tuples = []
     print(antennas_iq_file)
 
-    if minimal_arrays:
-        iterator = enumerate(antenna_names)
+    if "site" in antennas_iq_file:
+        iterable = enumerate(antenna_names)
     else:
-        iterator = zip(antenna_indices, antenna_names)
+        iterable = zip(antenna_indices, antenna_names)
 
     plotted = False
-    for antenna_num, antenna_name in iterator:
+    for antenna_num, antenna_name in iterable:
         antenna_data = arrays['data'][:, antenna_num, :, :]
         plot_filename = f'{directory_name}/{time_of_plot}.{antenna_name}_{start_sample}_{end_sample}.png'
         if num_processes == 1:
