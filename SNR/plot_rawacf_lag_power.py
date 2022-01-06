@@ -42,6 +42,7 @@ def plot_parser():
     parser.add_argument("--max-power", help="Maximum Power of color scale (dB).", default=50.0, type=float)
     parser.add_argument("--min-power", help="Minimum Power of color scale (dB).", default=10.0, type=float)
     parser.add_argument("--plot-directory", help="Directory to save plots.", default='', type=str)
+    parser.add_argument("--num-processes", help="Number of processes to use for plotting.", default=3, type=int)
     return parser
 
 
@@ -78,5 +79,6 @@ if __name__ == '__main__':
     else:
         datasets = None
 
-    plot_rawacf_lag_pwr(filename, beam_nums=beam_nums, lag_nums=lag_nums, datasets=datasets, num_processes=3,
-                        vmax=args.max_power, vmin=args.min_power, plot_directory=args.plot_directory)
+    plot_rawacf_lag_pwr(filename, beam_nums=beam_nums, lag_nums=lag_nums, datasets=datasets,
+                        num_processes=args.num_processes, vmax=args.max_power, vmin=args.min_power,
+                        plot_directory=args.plot_directory)

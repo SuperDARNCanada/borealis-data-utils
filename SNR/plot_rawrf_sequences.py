@@ -35,6 +35,7 @@ def plot_parser():
     parser.add_argument("--antennas", help="Antenna indices to plot. Format as --antennas=0,2-4,8")
     parser.add_argument("--sequences", help="Sequence indices to plot. Format as --sequences=0,2-4,8")
     parser.add_argument("--plot-directory", help="Directory to save plots.", default='', type=str)
+    parser.add_argument("--num-processes", help="Number of processes to use for plotting.", default=3, type=int)
     return parser
 
 
@@ -66,5 +67,5 @@ if __name__ == '__main__':
             else:
                 sequence_nums.append(int(sequence))
 
-    plot_rawrf_data(filename, antenna_nums=antenna_nums, num_processes=3, sequence_nums=sequence_nums,
+    plot_rawrf_data(filename, antenna_nums=antenna_nums, num_processes=args.num_processes, sequence_nums=sequence_nums,
                     plot_directory=args.plot_directory)
