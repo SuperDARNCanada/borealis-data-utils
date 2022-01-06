@@ -53,8 +53,8 @@ def antennas_iq_site_to_array(antennas_iq_file, antenna_nums=None):
     else:
         antenna_indices = []
         antenna_names = [f'antenna_{a}' for a in antenna_nums]
-        for antenna_name in antenna_nums:
-            antenna_indices.append(list(arrays['antenna_arrays_order']).index('antenna_' + str(antenna_name)))
+        for antenna_num in antenna_nums:
+            antenna_indices.append(list(arrays['antenna_arrays_order']).index('antenna_' + str(antenna_num)))
 
     # Get the maximum number of sequences for a record in the file
     max_sequences = 0
@@ -78,7 +78,7 @@ def antennas_iq_site_to_array(antennas_iq_file, antenna_nums=None):
         num_antennas, num_seqs, num_samps = record['data_dimensions']
         timestamps_data[i, :num_seqs] = record['sqn_timestamps']
         data = record['data'].reshape(record['data_dimensions'])
-        data_array[i, antenna_indices, :num_seqs, :] = \
+        data_array[i, :, :num_seqs, :] = \
             data[antenna_indices, ...]
 
     # Copy to dictionary and return

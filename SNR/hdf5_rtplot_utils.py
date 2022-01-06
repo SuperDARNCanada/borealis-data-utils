@@ -37,11 +37,12 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import os
+import deepdish as dd
 
 from pydarnio import BorealisRead
 from multiprocessing import Process
 
-from SNR.minimal_restructuring import antennas_iq_site_to_array
+from minimal_restructuring import antennas_iq_site_to_array
 
 matplotlib.use('Agg')
 plt.rcParams.update({'font.size': 28})
@@ -207,10 +208,12 @@ def plot_antennas_range_time(antennas_iq_file, antenna_nums=None, num_processes=
     # Try to guess the correct file structure
     if "site" in antennas_iq_file:
         arrays, antenna_names, antenna_indices = antennas_iq_site_to_array(antennas_iq_file, antenna_nums)
+        minimal_arrays = True   # Flag that the arrays returned contain only the minimum data possible
         # reader = BorealisRead(antennas_iq_file, 'antennas_iq', 'site')
     else:
         reader = BorealisRead(antennas_iq_file, 'antennas_iq', 'array')
         arrays = reader.arrays
+        minimal_arrays = False
 
         (num_records, num_antennas, max_num_sequences, num_samps) = \
             arrays['data'].shape
@@ -232,11 +235,27 @@ def plot_antennas_range_time(antennas_iq_file, antenna_nums=None, num_processes=
     arg_tuples = []
     print(antennas_iq_file)
 
-    for antenna_num, antenna_name in zip(antenna_indices, antenna_names):
+    if minimal_arrays:
+        iterator = enumerate(antenna_names)
+    else:
+        iterator = zip(antenna_indices, antenna_names)
+
+    plotted = False
+    for antenna_num, antenna_name in iterator:
         antenna_data = arrays['data'][:, antenna_num, :, :]
         plot_filename = f'{directory_name}/{time_of_plot}.{antenna_name}_{start_sample}_{end_sample}.png'
-        arg_tuples.append((copy.copy(antenna_data), sequences_data, timestamps_data, antenna_name, plot_filename, vmax,
-                           vmin, start_sample, end_sample))
+        if num_processes == 1:
+            # If the system is memory-limited, we can save memory by plotting in this thread
+            plot_unaveraged_range_time_data(antenna_data, sequences_data, timestamps_data, antenna_name, plot_filename,
+                                            vmax, vmin, start_sample, end_sample)
+            plotted = True
+        else:
+            arg_tuples.append((copy.copy(antenna_data), sequences_data, timestamps_data, antenna_name, plot_filename,
+                               vmax, vmin, start_sample, end_sample))
+
+    if plotted:
+        # Already plotted in this thread
+        return
 
     jobs = []
     antennas_index = 0
@@ -644,3 +663,185 @@ def plot_rawacf_lag_pwr(rawacf_file, beam_nums=None, lag_nums=None, datasets=Non
             proc.join()
 
         plots_index += num_processes
+
+
+def plot_rawrf_data(rawrf_file, antenna_nums=None, num_processes=3, sequence_nums=[0], plot_directory=''):
+    """
+    Plots a sequence of samples from a rawrf file.
+
+    Gets the samples between start_sample and end_sample for every
+    sequence in the file, calculates their power, and plots these sequences side
+    by side. Uses plasma color map.
+
+    Parameters
+    ----------
+    rawrf_file
+        The filename that you are plotting data from for plot title.
+    antenna_nums
+        List of antennas you want to plot. Rawrf files do not store
+        antennas_array_order, so this is simply indexed from 0. If your
+        radar has a different antenna order, this will fail silently, but
+        still naively plot the antennas just with the wrong labels.
+    num_processes
+        The number of processes to use to plot the data.
+    sequence_nums
+        The index of sequences in the first record to plot. Default [0]
+    plot_directory
+        The directory that generated plots will be saved in. Default '', which
+        will save plots in the same location as the input file.
+    """
+    basename = os.path.basename(rawrf_file)
+
+    if plot_directory == '':
+        directory_name = os.path.dirname(rawrf_file)
+    elif not os.path.exists(plot_directory):
+        directory_name = os.path.dirname(rawrf_file)
+        print(f"Plot directory {plot_directory} does not exist. Using directory {directory_name} instead.")
+    else:
+        directory_name = plot_directory
+
+    time_of_plot = '.'.join(basename.split('.')[0:6])
+
+    # reader = BorealisRead(rawrf_file, 'rawrf', 'site')
+    # records = reader.records
+    #
+    # record = records[0]
+    records = dd.io.load(rawrf_file)
+    record_keys = sorted(list(records.keys()))
+
+    record = records[record_keys[0]]
+
+    num_sequences, num_antennas, num_samps = record['data_dimensions']
+    total_samples = record['data'].size
+    sequences_stored = int(total_samples / num_samps / num_antennas)
+    data = record['data'].reshape((sequences_stored, num_antennas, num_samps))
+
+    # typically, antenna names and antenna indices are the same except
+    # where certain antennas were skipped in data writing for any reason.
+    if antenna_nums is None or len(antenna_nums) == 0:
+        antenna_indices = list(range(0, num_antennas))
+    else:
+        antenna_indices = antenna_nums
+    antenna_names = [f'antenna_{a}' for a in antenna_nums]
+
+    sequence_indices = []
+    # Check that the sequence_nums are valid
+    for num in sequence_nums:
+        if num < 0 or num > num_sequences:
+            print(f"{num} is not a valid sequence index. Valid indices for this file are 0-{num_sequences-1}.")
+        else:
+            sequence_indices.append(num)
+    if len(sequence_indices) == 0:
+        sequence_indices = [0]
+
+    timestamps_data = record['sqn_timestamps']
+    sampling_rate = record['rx_sample_rate']
+
+    arg_tuples = []
+    print(rawrf_file)
+
+    for antenna_num, antenna_name in zip(antenna_indices, antenna_names):
+        antenna_data = data[sequence_indices, antenna_num, :]
+        plot_filename_prefix = f'{directory_name}/{time_of_plot}.{antenna_name}_rawrf'
+        arg_tuples.append((copy.copy(antenna_data), timestamps_data, antenna_name, plot_filename_prefix, sampling_rate))
+
+    jobs = []
+    antennas_index = 0
+    antennas_left = True
+    while antennas_left:
+        for procnum in range(num_processes):
+            try:
+                antenna_args = arg_tuples[antennas_index + procnum]
+            except IndexError:
+                if antennas_index + procnum == 0:
+                    print('No antennas found to plot')
+                    raise
+                antennas_left = False
+                break
+            p = Process(target=plot_iq_data, args=antenna_args)
+            jobs.append(p)
+            p.start()
+
+        for proc in jobs:
+            proc.join()
+
+        antennas_index += num_processes
+
+
+def plot_iq_data(voltage_samples, timestamps_array, dataset_descriptor, plot_filename_prefix, sample_rate):
+    """
+    Plots data as range time given an array with correct dimensions. Also
+    plots SNR by finding the ratio of max power in the sequence to average
+    power of the 10 weakest range gates.
+
+    Note that this plots unaveraged data. All sequences available from the
+    record will be plotted side by side.
+
+    Parameters
+    ----------
+    voltage_samples
+        Array with shape num_sequences x num_samps for some
+        dataset.
+    timestamps_array
+        Array of timestamps with dimensions num_sequences.
+    dataset_descriptor
+        Name for dataset, to be included in plot title.
+    plot_filename_prefix
+        Path and beginning of filename to save plot. Since several plots are generated, there will be
+        multiple plots saved, all sharing this same prefix.
+    sample_rate
+        Sampling rate of the data in the file. Hz
+    """
+    print(dataset_descriptor)
+    num_sequences, num_samps = voltage_samples.shape
+
+    start_time = datetime.datetime.utcfromtimestamp(timestamps_array[0])
+    end_time = datetime.datetime.utcfromtimestamp(timestamps_array[-1])
+
+    # take the transpose to get sequences x samps for the dataset
+    # new_power_array = np.transpose(power_array)
+
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(32, 16))
+    fig.suptitle(f'{dataset_descriptor} Raw Voltage Sequence Time {start_time.strftime("%Y%m%d")} '
+                 f'{start_time.strftime("%H:%M:%S")} to {end_time.strftime("%H:%M:%S")} UT')
+
+    # plot one sequence (real and imaginary))
+    ax1.plot(np.arange(0, len(voltage_samples[0, :]))/sample_rate*1e6, np.real(voltage_samples[0, :]), label='In-Phase')
+    ax1.plot(np.arange(0, len(voltage_samples[0, :]))/sample_rate*1e6, np.imag(voltage_samples[0, :]), label='Quadrature')
+    ax1.legend()
+    ax1.set_ylabel('Arbitrary Units')
+
+    ax2.plot(np.arange(0, len(voltage_samples[0, :]))/sample_rate*1e6, 10 * np.log10(np.abs(voltage_samples[0, :])))
+    ax2.set_ylabel('Power (dB)')
+    ax2.set_xlabel('Time (us)')
+    ax2.get_shared_x_axes().join(ax1, ax2)
+
+    plot_name = plot_filename_prefix + '_time.png'
+    print(plot_name)
+    plt.savefig(plot_name)
+    # plt.show()
+    plt.close()
+
+    # Take FFT
+    N = voltage_samples[0, :].size
+    fft_data = np.fft.fft(voltage_samples[0, :])
+    fft_freqs = np.fft.fftshift(np.fft.fftfreq(voltage_samples.size, d=1/sample_rate)) / 1e6
+    zero_index = int(np.where(np.isclose(fft_freqs, 0.0))[0])
+
+    fft_fixed = np.zeros(N, dtype=np.complex64)
+    fft_fixed[:zero_index] = fft_data[zero_index:]
+    fft_fixed[zero_index:] = fft_data[:zero_index]
+
+    fig, ax = plt.subplots(1, 1, figsize=(32, 16))
+    fig.suptitle(f'{dataset_descriptor} Sequence FFT Time {start_time.strftime("%Y%m%d")} '
+                 f'{start_time.strftime("%H:%M:%S")} to {end_time.strftime("%H:%M:%S")} UT')
+
+    # plot one sequence
+    ax.plot(fft_freqs, 10 * np.log10(fft_fixed))
+    ax.set_ylabel('Power (dB)')
+    ax.set_xlabel('Frequency (MHz)')
+
+    plot_name = plot_filename_prefix + '_freq.png'
+    print(plot_name)
+    plt.savefig(plot_name)
+    plt.close()
