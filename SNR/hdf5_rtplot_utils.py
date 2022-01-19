@@ -121,7 +121,7 @@ def plot_unaveraged_range_time_data(data_array, num_sequences_array, timestamps_
     # take the transpose to get sequences x samps for the dataset
     new_power_array = np.transpose(power_array)
 
-    kw = {'width_ratios': [95, 5]}
+    kw = {'width_ratios': [95, 5], 'height_ratios': [1, 3]}
     fig, ((ax1, cax1), (ax2, cax2)) = plt.subplots(2, 2, figsize=(32, 16), gridspec_kw=kw)
     fig.suptitle(f'{dataset_descriptor} Raw Power Sequence Time {start_time.strftime("%Y%m%d")} '
                  f'{start_time.strftime("%H:%M:%S")} to {end_time.strftime("%H:%M:%S")} UT vs Range')
