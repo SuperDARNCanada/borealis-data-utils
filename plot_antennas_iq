@@ -1,0 +1,76 @@
+#!/bin/bash
+# Author: Remington Rohel
+
+# This script gets the latest files from
+
+# Copied from https://www.smashingmagazine.com/2015/06/efficient-image-resizing-with-imagemagick/#bash-shell
+smartresize() {
+  # Takes 3 args: input image, desired width (px), and output_directory. Scales and compresses image, maintaining aspect ratio.
+  mogrify -path "$3" -filter Triangle -define filter:support=2 -thumbnail "$2" -unsharp 0.25x0.08+8.3+0.045 -dither None -posterize 136 -quality 82 -define jpeg:fancy-upsampling=off -define png:compression-filter=5 -define png:compression-level=9 -define png:compression-strategy=1 -define png:exclude-chunk=all -interlace none -colorspace sRGB "$1"
+}
+
+today=$(date -u +%Y%m%d)
+current_hour=$(date -u +%H)
+
+# Find out when the previous 2-hr window started
+# search_1 = YYYYMMDD.HH for 2 hours ago
+if ((current_hour < 2)); then
+  ((two_hrs_previous = 24 - current_hour))
+  ((yesterday = today - 1))
+  search_1="${yesterday}.${two_hrs_previous}"
+else
+  ((two_hrs_previous = current_hour - 2))
+  search_1="${today}.${two_hrs_previous}"
+fi
+
+# Find the previous hour
+# search_2 = YYYYMMDD.HH for 1 hour ago
+if ((current_hour < 1)); then
+  ((one_hr_previous = 24 - current_hour))
+  ((yesterday = today - 1))
+  search_2="${yesterday}.${one_hr_previous}"
+else
+  ((one_hr_previous = current_hour - 1))
+  search_2="${today}.${one_hr_previous}"
+fi
+
+# Important directories for data and plots
+data_dir=/borealis_nfs/borealis_data/antennas_iq_array/
+plot_dir=/home/transfer/logging/daily_plots/
+fullsize_dir=/home/transfer/logging/daily_plots/fullsize/
+
+# Check the existence of the necessary directories.
+if [ ! -d "${plot_dir}" ]; then
+    echo "Making directory ${plot_dir}"
+    mkdir "${plot_dir}"
+fi
+
+if [ ! -d "${fullsize_dir}" ]; then
+    echo "Making directory ${fullsize_dir}"
+    mkdir "${fullsize_dir}"
+fi
+
+# Get the files from the past two hours (matching search_1 or search_2 in the data_dir)
+daily_files=$(find "${data_dir}" -type f -regex ".*\(${search_1}\|${search_2}\).*0.antennas.*")
+
+echo "${daily_files}"
+
+# Need pydarnio-env to plot files
+source /home/transfer/pydarnio-env/bin/activate
+
+for f in $daily_files; do
+  python3 /home/transfer/borealis-data-utils/SNR/plot_antennas_range_time.py "${daily_files}" --plot-directory=${fullsize_dir} --num-processes=1
+done
+
+# Can deactivate pydarnio-env here
+deactivate
+
+# Get the names of all plots just generated
+daily_plots=$(ls ${fullsize_dir}/*.{png,jpg})
+
+# Resize the images to a desired pixel width
+for img in $daily_plots
+do
+	smartresize "$img" 1000 "${plot_dir}"
+done
+
