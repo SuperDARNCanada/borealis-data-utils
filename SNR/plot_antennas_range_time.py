@@ -40,6 +40,7 @@ def plot_parser():
     parser.add_argument("--start-sample", help="Sample Number to start at.", default=0, type=int)
     parser.add_argument("--end-sample", help="Sample Number to end at.", default=70, type=int)
     parser.add_argument("--plot-directory", help="Directory to save plots.", default='', type=str)
+    parser.add_argument("--figsize", help="Figure dimensions in inches. Format as --figsize=10,6", type=str)
     parser.add_argument("--num-processes", help="Number of processes to use for plotting.", default=3, type=int)
     return parser
 
@@ -61,6 +62,16 @@ if __name__ == '__main__':
             else:
                 antenna_nums.append(int(antenna))
 
+    sizes = None
+    if args.figsize is not None:
+        sizes = []
+        for size in args.figsize.split(','):
+            sizes.append(float(size))
+        if len(sizes) == 1:
+            sizes.append(sizes[0])  # If they only pass in one size, assume they want a square plot.
+        else:
+            sizes = sizes[:2]  # If they pass in more than 2 sizes, truncate to just the first two.
+
     plot_antennas_range_time(filename, antenna_nums=antenna_nums, num_processes=args.num_processes, vmax=args.max_power,
                              vmin=args.min_power, start_sample=args.start_sample, end_sample=args.end_sample,
-                             plot_directory=args.plot_directory)
+                             plot_directory=args.plot_directory, figsize=sizes)

@@ -49,7 +49,7 @@ plt.rcParams.update({'font.size': 28})
 
 
 def plot_unaveraged_range_time_data(data_array, num_sequences_array, timestamps_array, dataset_descriptor,
-                                    plot_filename, vmax, vmin, start_sample, end_sample):
+                                    plot_filename, vmax, vmin, start_sample, end_sample, figsize):
     """
     Plots data as range time given an array with correct dimensions. Also
     plots SNR by finding the ratio of max power in the sequence to average 
@@ -78,7 +78,9 @@ def plot_unaveraged_range_time_data(data_array, num_sequences_array, timestamps_
     start_sample
         The sample to start plotting at. 
     end_sample
-        The last sample in the sequence to plot. 
+        The last sample in the sequence to plot.
+    figsize
+        The desired size (in inches) of the plotted figure.
     """
     print(dataset_descriptor)
     (num_records, max_num_sequences, num_samps) = data_array.shape
@@ -122,7 +124,7 @@ def plot_unaveraged_range_time_data(data_array, num_sequences_array, timestamps_
     new_power_array = np.transpose(power_array)
 
     kw = {'width_ratios': [95, 5], 'height_ratios': [1, 3]}
-    fig, ((ax1, cax1), (ax2, cax2)) = plt.subplots(2, 2, figsize=(32, 16), gridspec_kw=kw)
+    fig, ((ax1, cax1), (ax2, cax2)) = plt.subplots(2, 2, figsize=figsize, gridspec_kw=kw)
     fig.suptitle(f'{dataset_descriptor} Raw Power Sequence Time {start_time.strftime("%Y%m%d")} '
                  f'{start_time.strftime("%H:%M:%S")} to {end_time.strftime("%H:%M:%S")} UT vs Range')
 
@@ -157,7 +159,7 @@ def plot_unaveraged_range_time_data(data_array, num_sequences_array, timestamps_
 
 
 def plot_antennas_range_time(antennas_iq_file, antenna_nums=None, num_processes=3, vmax=40.0, vmin=10.0, start_sample=0,
-                             end_sample=70, plot_directory=''):
+                             end_sample=70, plot_directory='', figsize=(32, 16)):
     """ 
     Plots unaveraged range time data from echoes received in every sequence
     for a single antenna.
@@ -192,6 +194,8 @@ def plot_antennas_range_time(antennas_iq_file, antenna_nums=None, num_processes=
     plot_directory
         The directory that generated plots will be saved in. Default '', which
         will save plots in the same location as the input file.
+    figsize
+        The size of the figure to create, in inches across by inches tall.
     """
     basename = os.path.basename(antennas_iq_file)
 
@@ -241,15 +245,15 @@ def plot_antennas_range_time(antennas_iq_file, antenna_nums=None, num_processes=
     plotted = False
     for antenna_num, antenna_name in iterable:
         antenna_data = arrays['data'][:, antenna_num, :, :]
-        plot_filename = f'{directory_name}/{time_of_plot}.{antenna_name}_{start_sample}_{end_sample}.png'
+        plot_filename = f'{directory_name}/{time_of_plot}.{antenna_name}_{start_sample}_{end_sample}.jpg'
         if num_processes == 1:
             # If the system is memory-limited, we can save memory by plotting in this thread
             plot_unaveraged_range_time_data(antenna_data, sequences_data, timestamps_data, antenna_name, plot_filename,
-                                            vmax, vmin, start_sample, end_sample)
+                                            vmax, vmin, start_sample, end_sample, figsize)
             plotted = True
         else:
             arg_tuples.append((copy.copy(antenna_data), sequences_data, timestamps_data, antenna_name, plot_filename,
-                               vmax, vmin, start_sample, end_sample))
+                               vmax, vmin, start_sample, end_sample, figsize))
 
     if plotted:
         # Already plotted in this thread
@@ -279,7 +283,7 @@ def plot_antennas_range_time(antennas_iq_file, antenna_nums=None, num_processes=
 
 
 def plot_arrays_range_time(bfiq_file, beam_nums=None, num_processes=3, vmax=50.0, vmin=10.0, start_sample=0,
-                           end_sample=70, plot_directory=''):
+                           end_sample=70, plot_directory='', figsize=(32, 16)):
     """ 
     Plots unaveraged range time data from echoes received in every sequence
     for a single beam.
@@ -309,6 +313,8 @@ def plot_arrays_range_time(bfiq_file, beam_nums=None, num_processes=3, vmax=50.0
     plot_directory
         The directory that generated plots will be saved in. Default '', which
         will save plots in the same location as the input file.
+    figsize
+        The size of the figure to create, in inches across by inches tall.
     """
     # Try to guess the correct file structure
     if "site" in bfiq_file:
@@ -373,10 +379,11 @@ def plot_arrays_range_time(bfiq_file, beam_nums=None, num_processes=3, vmax=50.0
 
         for array_num, array_name in enumerate(arrays['antenna_arrays_order']):
             plot_filename = f'{directory_name}/{time_of_plot}.{array_name}_beam{str(beam_name)}_{start_sample}_' \
-                            f'{end_sample}.png'
+                            f'{end_sample}.jpg'
             descriptor = f'{array_name} beam {str(beam_name)}'
             arg_tuples.append((copy.copy(beam_arrays_data[:, array_num, :, :]), beam_sequences_data,
-                               beam_timestamps_data, descriptor, plot_filename, vmax, vmin, start_sample, end_sample))
+                               beam_timestamps_data, descriptor, plot_filename, vmax, vmin, start_sample, end_sample,
+                               figsize))
 
     jobs = []
     plots_index = 0
@@ -423,7 +430,7 @@ def plot_arrays_range_time(bfiq_file, beam_nums=None, num_processes=3, vmax=50.0
     #     print('FILE {} beam {} main array snr: {}'.format(bfiq_file,beam,snr))
 
 
-def plot_averaged_range_time_data(data_array, timestamps_array, dataset_descriptor, plot_filename, vmax, vmin):
+def plot_averaged_range_time_data(data_array, timestamps_array, dataset_descriptor, plot_filename, vmax, vmin, figsize):
     """
     Plots data as range time given an array with correct dimensions. Also
     plots SNR by finding the ratio of max power in the sequence to average 
@@ -445,7 +452,9 @@ def plot_averaged_range_time_data(data_array, timestamps_array, dataset_descript
     vmax
         Max power for the color bar on the plot. 
     vmin
-        Min power for the color bar on the plot. 
+        Min power for the color bar on the plot.
+    figsize
+        The desired size of the figure, in inches across by inches tall.
     """
     print(dataset_descriptor)
     (num_records, num_samps) = data_array.shape
@@ -484,8 +493,8 @@ def plot_averaged_range_time_data(data_array, timestamps_array, dataset_descript
     # x_lims = mdates.date2num([start_time, end_time])
     # y_lims = [start_sample, end_sample]
 
-    kw = {'width_ratios': [95, 5]}
-    fig, ((ax1, cax1), (ax2, cax2)) = plt.subplots(2, 2, figsize=(32, 16), gridspec_kw=kw)
+    kw = {'width_ratios': [95, 5], 'height_ratios': [1, 3]}
+    fig, ((ax1, cax1), (ax2, cax2)) = plt.subplots(2, 2, figsize=figsize, gridspec_kw=kw)
     fig.suptitle(f'{dataset_descriptor} PWR Time {start_time.strftime("%Y%m%d")} {start_time.strftime("%H:%M:%S")} to '
                  f'{end_time.strftime("%H:%M:%S")} UT vs Range')
 
@@ -520,7 +529,7 @@ def plot_averaged_range_time_data(data_array, timestamps_array, dataset_descript
 
 
 def plot_rawacf_lag_pwr(rawacf_file, beam_nums=None, lag_nums=None, datasets=None, num_processes=3, vmax=50.0,
-                        vmin=10.0, plot_directory=''):
+                        vmin=10.0, plot_directory='', figsize=(32, 16)):
     """
     Plots the lag xcf phase of rawacf.hdf5 file, lag number found via lag_index.
     
@@ -554,6 +563,8 @@ def plot_rawacf_lag_pwr(rawacf_file, beam_nums=None, lag_nums=None, datasets=Non
     plot_directory
         The directory that generated plots will be saved in. Default '', which
         will save plots in the same location as the input file.
+    figsize
+        The size of the figure to create, in inches across by inches tall.
     """
     # Try to guess the correct file structure
     if "site" in rawacf_file:
@@ -635,10 +646,10 @@ def plot_rawacf_lag_pwr(rawacf_file, beam_nums=None, lag_nums=None, datasets=Non
                                                                 (1, num_ranges))))
 
             for dataset in datasets:
-                plot_filename = f'{directory_name}/{time_of_plot}.{dataset}_beam{beam_name}_lag{lag_num}.png'
+                plot_filename = f'{directory_name}/{time_of_plot}.{dataset}_beam{beam_name}_lag{lag_num}.jpg'
                 descriptor = f'{dataset} beam {str(int(beam_name))} lag {str(lag_num)}'
                 arg_tuples.append((copy.copy(beam_lag_dict[dataset]), beam_timestamps_data, descriptor, plot_filename,
-                                   vmax, vmin))
+                                   vmax, vmin, figsize))
 
     jobs = []
     plots_index = 0
@@ -663,7 +674,8 @@ def plot_rawacf_lag_pwr(rawacf_file, beam_nums=None, lag_nums=None, datasets=Non
         plots_index += num_processes
 
 
-def plot_rawrf_data(rawrf_file, antenna_nums=None, num_processes=3, sequence_nums=[0], plot_directory=''):
+def plot_rawrf_data(rawrf_file, antenna_nums=None, num_processes=3, sequence_nums=[0], plot_directory='',
+                    figsize=(32, 16)):
     """
     Plots a sequence of samples from a rawrf file.
 
@@ -687,6 +699,8 @@ def plot_rawrf_data(rawrf_file, antenna_nums=None, num_processes=3, sequence_num
     plot_directory
         The directory that generated plots will be saved in. Default '', which
         will save plots in the same location as the input file.
+    figsize
+        The size of the figure to create, in inches across by inches tall.
     """
     basename = os.path.basename(rawrf_file)
 
@@ -741,7 +755,8 @@ def plot_rawrf_data(rawrf_file, antenna_nums=None, num_processes=3, sequence_num
     for antenna_num, antenna_name in zip(antenna_indices, antenna_names):
         antenna_data = data[sequence_indices, antenna_num, :]
         plot_filename_prefix = f'{directory_name}/{time_of_plot}.{antenna_name}_rawrf'
-        arg_tuples.append((copy.copy(antenna_data), timestamps_data, antenna_name, plot_filename_prefix, sampling_rate))
+        arg_tuples.append((copy.copy(antenna_data), timestamps_data, antenna_name, plot_filename_prefix, sampling_rate,
+                           figsize))
 
     jobs = []
     antennas_index = 0
@@ -766,7 +781,7 @@ def plot_rawrf_data(rawrf_file, antenna_nums=None, num_processes=3, sequence_num
         antennas_index += num_processes
 
 
-def plot_iq_data(voltage_samples, timestamps_array, dataset_descriptor, plot_filename_prefix, sample_rate):
+def plot_iq_data(voltage_samples, timestamps_array, dataset_descriptor, plot_filename_prefix, sample_rate, figsize):
     """
     Plots data as range time given an array with correct dimensions. Also
     plots SNR by finding the ratio of max power in the sequence to average
@@ -789,6 +804,8 @@ def plot_iq_data(voltage_samples, timestamps_array, dataset_descriptor, plot_fil
         multiple plots saved, all sharing this same prefix.
     sample_rate
         Sampling rate of the data in the file. Hz
+    figsize
+        Size of the plotted figure, in inches.
     """
     print(dataset_descriptor)
     num_sequences, num_samps = voltage_samples.shape
@@ -799,7 +816,7 @@ def plot_iq_data(voltage_samples, timestamps_array, dataset_descriptor, plot_fil
     # take the transpose to get sequences x samps for the dataset
     # new_power_array = np.transpose(power_array)
 
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(32, 16))
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=figsize)
     fig.suptitle(f'{dataset_descriptor} Raw Voltage Sequence Time {start_time.strftime("%Y%m%d")} '
                  f'{start_time.strftime("%H:%M:%S")} to {end_time.strftime("%H:%M:%S")} UT')
 
@@ -814,7 +831,7 @@ def plot_iq_data(voltage_samples, timestamps_array, dataset_descriptor, plot_fil
     ax2.set_xlabel('Time (us)')
     ax2.get_shared_x_axes().join(ax1, ax2)
 
-    plot_name = plot_filename_prefix + '_time.png'
+    plot_name = plot_filename_prefix + '_time.jpg'
     print(plot_name)
     plt.savefig(plot_name)
     # plt.show()
@@ -830,7 +847,7 @@ def plot_iq_data(voltage_samples, timestamps_array, dataset_descriptor, plot_fil
     fft_fixed[:zero_index] = fft_data[zero_index:]
     fft_fixed[zero_index:] = fft_data[:zero_index]
 
-    fig, ax = plt.subplots(1, 1, figsize=(32, 16))
+    fig, ax = plt.subplots(1, 1, figsize=figsize)
     fig.suptitle(f'{dataset_descriptor} Sequence FFT Time {start_time.strftime("%Y%m%d")} '
                  f'{start_time.strftime("%H:%M:%S")} to {end_time.strftime("%H:%M:%S")} UT')
 
@@ -839,7 +856,7 @@ def plot_iq_data(voltage_samples, timestamps_array, dataset_descriptor, plot_fil
     ax.set_ylabel('Power (dB)')
     ax.set_xlabel('Frequency (MHz)')
 
-    plot_name = plot_filename_prefix + '_freq.png'
+    plot_name = plot_filename_prefix + '_freq.jpg'
     print(plot_name)
     plt.savefig(plot_name)
     plt.close()
