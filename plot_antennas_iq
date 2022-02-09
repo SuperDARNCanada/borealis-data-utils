@@ -72,5 +72,8 @@ daily_plots=$(ls ${fullsize_dir}/*.{png,jpg})
 for img in $daily_plots
 do
 	smartresize "$img" 1000 "${plot_dir}"
+	if [ $? -eq 0 ]; then
+	  rm "$img"
+  fi
 done
 
