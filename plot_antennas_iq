@@ -9,30 +9,16 @@ smartresize() {
   mogrify -path "$3" -filter Triangle -define filter:support=2 -thumbnail "$2" -unsharp 0.25x0.08+8.3+0.045 -dither None -posterize 136 -quality 82 -define jpeg:fancy-upsampling=off -define png:compression-filter=5 -define png:compression-level=9 -define png:compression-strategy=1 -define png:exclude-chunk=all -interlace none -colorspace sRGB "$1"
 }
 
-today=$(date -u +%Y%m%d)
-current_hour=$(date -u +%H)
+echo "Running plot_antennas_iq at $(date -u +%Y%m%d.%H%M)"
+now=$(date -u +%s)  # seconds since epoch
 
 # Find out when the previous 2-hr window started
 # search_1 = YYYYMMDD.HH for 2 hours ago
-if ((current_hour < 2)); then
-  ((two_hrs_previous = 24 - current_hour))
-  ((yesterday = today - 1))
-  search_1="${yesterday}.${two_hrs_previous}"
-else
-  ((two_hrs_previous = current_hour - 2))
-  search_1="${today}.${two_hrs_previous}"
-fi
+search_1=$(date -d @$((now - 7200)) +%Y%m%d.%H)
 
 # Find the previous hour
 # search_2 = YYYYMMDD.HH for 1 hour ago
-if ((current_hour < 1)); then
-  ((one_hr_previous = 24 - current_hour))
-  ((yesterday = today - 1))
-  search_2="${yesterday}.${one_hr_previous}"
-else
-  ((one_hr_previous = current_hour - 1))
-  search_2="${today}.${one_hr_previous}"
-fi
+search_2=$(date -d @$((now - 3600)) +%Y%m%d.%H)
 
 # Important directories for data and plots
 data_dir=/borealis_nfs/borealis_data/antennas_iq_array/
@@ -59,7 +45,7 @@ echo "${daily_files}"
 source /home/transfer/pydarnio-env/bin/activate
 
 for f in $daily_files; do
-  python3 /home/transfer/borealis-data-utils/SNR/plot_antennas_range_time.py "${daily_files}" --plot-directory=${fullsize_dir} --num-processes=1
+  python3 /home/transfer/borealis-data-utils/SNR/plot_antennas_range_time.py "${f}" --plot-directory=${fullsize_dir} --num-processes=1
 done
 
 # Can deactivate pydarnio-env here
