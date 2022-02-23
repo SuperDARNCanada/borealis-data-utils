@@ -62,7 +62,7 @@ if __name__ == '__main__':
             else:
                 antenna_nums.append(int(antenna))
 
-    sizes = None
+    sizes = (32, 16)    # Default figsize
     if args.figsize is not None:
         sizes = []
         for size in args.figsize.split(','):

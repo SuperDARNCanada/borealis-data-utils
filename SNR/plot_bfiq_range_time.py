@@ -63,7 +63,7 @@ if __name__ == '__main__':
             else:
                 beam_nums.append(int(beam))
 
-    sizes = None
+    sizes = (32, 16)    # Default figsize
     if args.figsize is not None:
         sizes = []
         for size in args.figsize.split(','):
