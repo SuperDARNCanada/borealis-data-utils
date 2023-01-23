@@ -100,7 +100,7 @@ def plot_unaveraged_range_time_data(data_array, num_sequences_array, timestamps_
             timestamps.append(timestamp)
 
             # Get the raw power from the voltage samples
-            power = np.abs(voltage_samples)[sequence, start_sample:end_sample]
+            power = np.abs(voltage_samples)[sequence]
             power_db = 10 * np.log10(power)
             power_list.append(power_db)
 
@@ -133,6 +133,7 @@ def plot_unaveraged_range_time_data(data_array, num_sequences_array, timestamps_
     ax2.set_title(f'Range-time based on samples {start_sample} to {end_sample}')
     ax2.set_ylabel('Sample number (Range)')
     ax2.set_xlabel('Sequence number (spans time)')
+    ax2.set_ylim(start_sample, end_sample)
 
     fig.colorbar(img, cax=cax2, label='Raw Power (dB)')
     cax1.axis('off') 
