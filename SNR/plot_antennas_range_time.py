@@ -8,6 +8,7 @@ antennas_iq file.
 
 import argparse
 from hdf5_rtplot_utils import plot_antennas_range_time
+import utils
 
 
 def usage_msg():
@@ -53,14 +54,7 @@ if __name__ == '__main__':
 
     antenna_nums = []
     if args.antennas is not None:
-        antennas = args.antennas.split(',')
-        for antenna in antennas:
-            # If they specified a range, then include all numbers in that range (including endpoints)
-            if '-' in antenna:
-                small_antenna, big_antenna = antenna.split('-')
-                antenna_nums.extend(range(int(small_antenna), int(big_antenna) + 1))
-            else:
-                antenna_nums.append(int(antenna))
+        antenna_nums = utils.build_list_from_input(args.antennas)
 
     sizes = (32, 16)    # Default figsize
     if args.figsize is not None:
@@ -71,6 +65,7 @@ if __name__ == '__main__':
             sizes.append(sizes[0])  # If they only pass in one size, assume they want a square plot.
         else:
             sizes = sizes[:2]  # If they pass in more than 2 sizes, truncate to just the first two.
+            print(f'Warning: only keeping {sizes} from input figure size.')
 
     plot_antennas_range_time(filename, antenna_nums=antenna_nums, num_processes=args.num_processes, vmax=args.max_power,
                              vmin=args.min_power, start_sample=args.start_sample, end_sample=args.end_sample,

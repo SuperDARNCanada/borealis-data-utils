@@ -6,6 +6,7 @@ This script is used to plot rawrf data from a single rawrf file.
 
 import argparse
 from hdf5_rtplot_utils import plot_rawrf_data
+import utils
 
 
 def usage_msg():
@@ -48,25 +49,11 @@ if __name__ == '__main__':
 
     antenna_nums = []
     if args.antennas is not None:
-        antennas = args.antennas.split(',')
-        for antenna in antennas:
-            # If they specified a range, then include all numbers in that range (including endpoints)
-            if '-' in antenna:
-                small_antenna, big_antenna = antenna.split('-')
-                antenna_nums.extend(range(int(small_antenna), int(big_antenna) + 1))
-            else:
-                antenna_nums.append(int(antenna))
+        antenna_nums = utils.build_list_from_input(args.antennas)
 
     sequence_nums = []
     if args.sequences is not None:
-        sequences = args.sequences.split(',')
-        for sequence in sequences:
-            # If they specified a range, then include all numbers in that range (including endpoints)
-            if '-' in sequence:
-                small_sequence, big_sequence = sequence.split('-')
-                sequence_nums.extend(range(int(small_sequence), int(big_sequence) + 1))
-            else:
-                sequence_nums.append(int(sequence))
+        sequence_nums = utils.build_list_from_input(args.sequences)
 
     sizes = (32, 16)    # Default figsize
     if args.figsize is not None:
@@ -77,6 +64,7 @@ if __name__ == '__main__':
             sizes.append(sizes[0])  # If they only pass in one size, assume they want a square plot.
         else:
             sizes = sizes[:2]  # If they pass in more than 2 sizes, truncate to just the first two.
+            print(f'Warning: only keeping {sizes} from input figure size.')
 
     plot_rawrf_data(filename, antenna_nums=antenna_nums, num_processes=args.num_processes, sequence_nums=sequence_nums,
                     plot_directory=args.plot_directory, figsize=sizes)
