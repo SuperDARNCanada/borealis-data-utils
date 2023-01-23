@@ -1,12 +1,17 @@
 #!/bin/bash
 # Author: Remington Rohel
 
-# This script gets the latest files from
+# This script gets the latest antennas_iq files from data_dir (defined below) and plots the data within.
 
 # Copied from https://www.smashingmagazine.com/2015/06/efficient-image-resizing-with-imagemagick/#bash-shell
 smartresize() {
-  # Takes 3 args: input image, desired width (px), and output_directory. Scales and compresses image, maintaining aspect ratio.
-  mogrify -path "$3" -filter Triangle -define filter:support=2 -thumbnail "$2" -unsharp 0.25x0.08+8.3+0.045 -dither None -posterize 136 -quality 82 -define jpeg:fancy-upsampling=off -define png:compression-filter=5 -define png:compression-level=9 -define png:compression-strategy=1 -define png:exclude-chunk=all -interlace none -colorspace sRGB "$1"
+  # Takes 3 args: input image, desired width (px), and output_directory.
+  # Scales and compresses image, maintaining aspect ratio.
+  mogrify -path "$3" -filter Triangle -define filter:support=2 -thumbnail "$2" \
+          -unsharp 0.25x0.08+8.3+0.045 -dither None -posterize 136 -quality 82 \
+          -define jpeg:fancy-upsampling=off -define png:compression-filter=5 \
+          -define png:compression-level=9 -define png:compression-strategy=1 \
+          -define png:exclude-chunk=all -interlace none -colorspace sRGB "$1"
 }
 
 echo "Running plot_antennas_iq at $(date -u +%Y%m%d.%H%M)"
@@ -23,19 +28,14 @@ search_2=$(date -d @$((now - 3600)) +%Y%m%d.%H)
 # Important directories for data and plots
 data_dir=/borealis_nfs/borealis_data/antennas_iq_array/
 failed_dir=/borealis_nfs/borealis_data/conversion_failure/
-plot_dir=/home/transfer/logging/daily_plots/
-fullsize_dir=/home/transfer/logging/daily_plots/fullsize/
+plot_dir=${HOME}/logging/daily_plots/
+fullsize_dir=${HOME}/logging/daily_plots/fullsize/
+failed_resize_dir=${HOME}/logging/daily_plots/failed_resize/
 
 # Check the existence of the necessary directories.
-if [ ! -d "${plot_dir}" ]; then
-    echo "Making directory ${plot_dir}"
-    mkdir "${plot_dir}"
-fi
-
-if [ ! -d "${fullsize_dir}" ]; then
-    echo "Making directory ${fullsize_dir}"
-    mkdir "${fullsize_dir}"
-fi
+mkdir --verbose --parents ${plot_dir}
+mkdir --verbose --parents ${fullsize_dir}
+mkdir --verbose --parents ${failed_resize_dir}
 
 # Get the files from the past two hours (matching search_1 or search_2 in the data_dir and failed_dir)
 daily_files=$(find "${data_dir}" "${failed_dir}" -type f -regex ".*\(${search_1}\|${search_2}\).*0.antennas.*")
@@ -43,24 +43,23 @@ daily_files=$(find "${data_dir}" "${failed_dir}" -type f -regex ".*\(${search_1}
 echo "${daily_files}"
 
 # Need pydarnio-env to plot files
-source /home/transfer/pydarnio-env/bin/activate
+source ${HOME}/pydarnio-env/bin/activate
 
-for f in $daily_files; do
-  python3 /home/transfer/borealis-data-utils/SNR/plot_antennas_range_time.py "${f}" --plot-directory=${fullsize_dir} --num-processes=1
+for f in ${daily_files}; do
+  python3 ${HOME}/borealis-data-utils/SNR/plot_antennas_range_time.py "${f}" --plot-directory=${fullsize_dir} --num-processes=1
 done
-
-# Can deactivate pydarnio-env here
-deactivate
 
 # Get the names of all plots just generated
 daily_plots=$(ls ${fullsize_dir}/*.{png,jpg})
 
 # Resize the images to a desired pixel width
-for img in $daily_plots
+for img in ${daily_plots}
 do
-	smartresize "$img" 1000 "${plot_dir}"
+	smartresize ${img} 1000 ${plot_dir}
 	if [ $? -eq 0 ]; then
-	  rm "$img"
+	  rm --verbose ${img}
+	else
+	  echo "Failed to resize ${img}"
+	  mv --verbose ${img} ${failed_resize_dir}
   fi
 done
-
