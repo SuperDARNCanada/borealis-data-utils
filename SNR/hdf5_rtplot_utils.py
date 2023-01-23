@@ -45,7 +45,6 @@ from multiprocessing import Process
 from minimal_restructuring import antennas_iq_site_to_array
 
 matplotlib.use('Agg')
-plt.rcParams.update({'font.size': 28})
 
 
 def plot_unaveraged_range_time_data(data_array, num_sequences_array, timestamps_array, dataset_descriptor,
@@ -60,26 +59,26 @@ def plot_unaveraged_range_time_data(data_array, num_sequences_array, timestamps_
 
     Parameters
     ----------
-    data_array
+    data_array: ndarray
         Array with shape num_records x max_num_sequences x num_samps for some 
         dataset.
-    num_sequences_array
+    num_sequences_array: ndarray
         Array with shape num_records with the number of sequences per record.
-    timestamps_array
+    timestamps_array: ndarray
         Array of timestamps with dimensions num_records x max_num_sequences.
-    dataset_descriptor
+    dataset_descriptor: str
         Name for dataset, to be included in plot title.
-    plot_filename
+    plot_filename: str
         Where to save plot.
-    vmax
+    vmax: float
         Max power for the color bar on the plot. 
-    vmin
+    vmin: float
         Min power for the color bar on the plot. 
-    start_sample
+    start_sample: int
         The sample to start plotting at. 
-    end_sample
+    end_sample: int
         The last sample in the sequence to plot.
-    figsize
+    figsize: tuple (float, float)
         The desired size (in inches) of the plotted figure.
     """
     print(dataset_descriptor)
@@ -98,7 +97,7 @@ def plot_unaveraged_range_time_data(data_array, num_sequences_array, timestamps_
 
         for sequence in range(num_sequences):
             timestamp = float(timestamps_array[record_num, sequence])
-            timestamps.append(float(timestamp))
+            timestamps.append(timestamp)
 
             # Get the raw power from the voltage samples
             power = np.abs(voltage_samples)[sequence, start_sample:end_sample]
@@ -116,9 +115,6 @@ def plot_unaveraged_range_time_data(data_array, num_sequences_array, timestamps_
     
     start_time = datetime.datetime.utcfromtimestamp(timestamps[0])
     end_time = datetime.datetime.utcfromtimestamp(timestamps[-1])
-
-    # x_lims = mdates.date2num([start_time, end_time])
-    # y_lims = [start_sample, end_sample]
     
     # take the transpose to get sequences x samps for the dataset
     new_power_array = np.transpose(power_array)
@@ -138,17 +134,6 @@ def plot_unaveraged_range_time_data(data_array, num_sequences_array, timestamps_
     ax2.set_ylabel('Sample number (Range)')
     ax2.set_xlabel('Sequence number (spans time)')
 
-    # extent=[x_lims[0], x_lims[1], y_lims[0], y_lims[1]], 
-
-    # Using datetimes as below can be misleading because it is just using
-    # a range and our sequences are not necessarily evenly spaced across 
-    # the time range. Not going to plot this way until a better method can
-    # be found.
-    # ax2.xaxis_date()
-    # date_format = mdates.DateFormatter('%H:%M:%S')
-    # ax2.xaxis.set_major_formatter(date_format)
-    # fig.autofmt_xdate()
-    # ax2.tick_params(axis='x', which='major', labelsize='15')
     fig.colorbar(img, cax=cax2, label='Raw Power (dB)')
     cax1.axis('off') 
 
@@ -159,7 +144,7 @@ def plot_unaveraged_range_time_data(data_array, num_sequences_array, timestamps_
 
 
 def plot_antennas_range_time(antennas_iq_file, antenna_nums=None, num_processes=3, vmax=40.0, vmin=10.0, start_sample=0,
-                             end_sample=70, plot_directory='', figsize=(32, 16)):
+                             end_sample=70, plot_directory='', figsize=(12, 10)):
     """ 
     Plots unaveraged range time data from echoes received in every sequence
     for a single antenna.
@@ -170,9 +155,9 @@ def plot_antennas_range_time(antennas_iq_file, antenna_nums=None, num_processes=
 
     Parameters 
     ----------
-    antennas_iq_file
+    antennas_iq_file: str
         The filename that you are plotting data from for plot title.
-    antenna_nums
+    antenna_nums: list[int]
         List of antennas you want to plot. This is the antenna number 
         as listed in the antenna_arrays_order. The index into the data array
         is determined by finding the index of the antenna number into the 
@@ -180,22 +165,22 @@ def plot_antennas_range_time(antennas_iq_file, antenna_nums=None, num_processes=
         first consecutively, followed by interferometer antennas consecutively. 
         Default None, which allows the algorithm to plot all antennas available 
         in the dataset.
-    num_processes
-        The number of processes to use to plot the data.
-    vmax
-        Max power for the color bar on the plot. Default 40 dB.
-    vmin
-        Min power for the color bar on the plot.  Default 10 dB. 
-    start_sample
+    num_processes: int
+        The number of processes to use to plot the data. Default 3.
+    vmax: float
+        Max power for the color bar on the plot, in dB. Default 40 dB.
+    vmin: float
+        Min power for the color bar on the plot, in dB.  Default 10 dB.
+    start_sample: int
         The sample to start plotting at. Default 0th range (first sample).
-    end_sample
+    end_sample: int
         The last sample in the sequence to plot. Default 70 so ranges 0-69
         will plot.
-    plot_directory
+    plot_directory: str
         The directory that generated plots will be saved in. Default '', which
         will save plots in the same location as the input file.
-    figsize
-        The size of the figure to create, in inches across by inches tall.
+    figsize: tuple (float, float)
+        The size of the figure to create, in inches across by inches tall. Default (12, 10)
     """
     basename = os.path.basename(antennas_iq_file)
 
@@ -210,15 +195,16 @@ def plot_antennas_range_time(antennas_iq_file, antenna_nums=None, num_processes=
     time_of_plot = '.'.join(basename.split('.')[0:6])
 
     # Try to guess the correct file structure
-    if "site" in antennas_iq_file:
+    basename = os.path.basename(antennas_iq_file)
+    is_site_file = 'site' in basename
+
+    if is_site_file:
         arrays, antenna_names, antenna_indices = antennas_iq_site_to_array(antennas_iq_file, antenna_nums)
-        # reader = BorealisRead(antennas_iq_file, 'antennas_iq', 'site')
     else:
         reader = BorealisRead(antennas_iq_file, 'antennas_iq', 'array')
         arrays = reader.arrays
 
-        (num_records, num_antennas, max_num_sequences, num_samps) = \
-            arrays['data'].shape
+        (num_records, num_antennas, max_num_sequences, num_samps) = arrays['data'].shape
 
         # typically, antenna names and antenna indices are the same except
         # where certain antennas were skipped in data writing for any reason.
@@ -228,8 +214,8 @@ def plot_antennas_range_time(antennas_iq_file, antenna_nums=None, num_processes=
         else:
             antenna_indices = []
             antenna_names = [f'antenna_{a}' for a in antenna_nums]
-            for antenna_name in antenna_nums:
-                antenna_indices.append(list(arrays['antenna_arrays_order']).index('antenna_' + str(antenna_name)))
+            for antenna_num in antenna_nums:
+                antenna_indices.append(list(arrays['antenna_arrays_order']).index('antenna_' + str(antenna_num)))
 
     sequences_data = arrays['num_sequences']
     timestamps_data = arrays['sqn_timestamps']
@@ -237,7 +223,7 @@ def plot_antennas_range_time(antennas_iq_file, antenna_nums=None, num_processes=
     arg_tuples = []
     print(antennas_iq_file)
 
-    if "site" in antennas_iq_file:
+    if is_site_file:
         iterable = enumerate(antenna_names)
     else:
         iterable = zip(antenna_indices, antenna_names)
@@ -283,7 +269,7 @@ def plot_antennas_range_time(antennas_iq_file, antenna_nums=None, num_processes=
 
 
 def plot_arrays_range_time(bfiq_file, beam_nums=None, num_processes=3, vmax=50.0, vmin=10.0, start_sample=0,
-                           end_sample=70, plot_directory='', figsize=(32, 16)):
+                           end_sample=70, plot_directory='', figsize=(12, 10)):
     """ 
     Plots unaveraged range time data from echoes received in every sequence
     for a single beam.
@@ -294,27 +280,27 @@ def plot_arrays_range_time(bfiq_file, beam_nums=None, num_processes=3, vmax=50.0
 
     Parameters 
     ----------
-    bfiq_file
+    bfiq_file: str
         The filename that you are plotting data from for plot title.
-    beam_nums
+    beam_nums: list[int]
         The list of beam numbers to plot. Default None which allows all beams 
         available in the file to be plotted.
-    num_processes
-        The number of processes to use to plot the data from the beam_nums.
-    vmax
-        Max power for the color bar on the plot. Default 60 dB.
-    vmin
+    num_processes: int
+        The number of processes to use to plot the data from the beam_nums. Default 3.
+    vmax: float
+        Max power for the color bar on the plot. Default 50 dB.
+    vmin: float
         Min power for the color bar on the plot.  Default 10 dB. 
-    start_sample
+    start_sample: int
         The sample to start plotting at. Default 0th range (first sample).
-    end_sample
+    end_sample: int
         The last sample in the sequence to plot. Default 70 so ranges 0-69
         will plot.
-    plot_directory
+    plot_directory: str
         The directory that generated plots will be saved in. Default '', which
         will save plots in the same location as the input file.
-    figsize
-        The size of the figure to create, in inches across by inches tall.
+    figsize: tuple (float, float)
+        The size of the figure to create, in inches across by inches tall. Default (12, 10)
     """
     # Try to guess the correct file structure
     if "site" in bfiq_file:
@@ -407,28 +393,6 @@ def plot_arrays_range_time(bfiq_file, beam_nums=None, num_processes=3, vmax=50.0
 
         plots_index += num_processes
 
-    # for beam in main_power_dict.keys():
-    #     main_power_array = np.transpose(np.array(main_power_dict[beam])[:,0:69])
-    #     intf_power_array = np.transpose(np.array(intf_power_dict[beam])[:,0:69])
-    #     print(main_power_array.shape)
-    #     fig, (ax1, ax2, cax) = plt.subplots(nrows=3, figsize=(32,24), gridspec_kw={'height_ratios':[0.4,0.4,0.1]})
-    #     img1 = ax1.imshow(main_power_array, aspect='auto', origin='lower', cmap=plt.get_cmap('plasma'), vmax=vmax,
-    #                       vmin=vmin)
-    #     img2 = ax2.imshow(intf_power_array, aspect='auto', origin='lower', cmap=plt.get_cmap('plasma'), vmax=vmax,
-    #                       vmin=vmin)
-    #     fig.colorbar(img1, cax=cax, orientation='horizontal')
-
-    #     basename = bfiq_file.split('/')[-1]
-    #     time_of_plot = '.'.join(basename.split('.')[0:6])
-    #     plotname = time_of_plot + '.beam{}.png'.format(beam)
-    #     print(plotname)
-    #     plt.savefig(plotname)
-    #     plt.close()
-    #     use average of a close range as noise floor, see very little there (45 * 7 = 315 km range)
-    #     snr = np.max(main_power_array) - np.mean(main_power_array[:,10], axis=0)
-    #     print('Ave of array: {}'.format(np.average(main_power_array)))
-    #     print('FILE {} beam {} main array snr: {}'.format(bfiq_file,beam,snr))
-
 
 def plot_averaged_range_time_data(data_array, timestamps_array, dataset_descriptor, plot_filename, vmax, vmin, figsize):
     """
@@ -440,20 +404,20 @@ def plot_averaged_range_time_data(data_array, timestamps_array, dataset_descript
 
     Parameters
     ----------
-    data_array
+    data_array: ndarray
         Array with shape num_records x num_samps (or num_ranges) for some 
         correlations dataset.
-    timestamps_array
+    timestamps_array: ndarray
         Array of timestamps with dimensions num_records x max_num_sequences.
-    dataset_descriptor
+    dataset_descriptor: str
         Name for dataset, to be included in plot title.
-    plot_filename
+    plot_filename: str
         Where to save plot.
-    vmax
+    vmax: float
         Max power for the color bar on the plot. 
-    vmin
+    vmin: float
         Min power for the color bar on the plot.
-    figsize
+    figsize: tuple (float, float)
         The desired size of the figure, in inches across by inches tall.
     """
     print(dataset_descriptor)
@@ -490,9 +454,6 @@ def plot_averaged_range_time_data(data_array, timestamps_array, dataset_descript
     start_time = datetime.datetime.utcfromtimestamp(timestamps[0])
     end_time = datetime.datetime.utcfromtimestamp(timestamps[-1])
 
-    # x_lims = mdates.date2num([start_time, end_time])
-    # y_lims = [start_sample, end_sample]
-
     kw = {'width_ratios': [95, 5], 'height_ratios': [1, 3]}
     fig, ((ax1, cax1), (ax2, cax2)) = plt.subplots(2, 2, figsize=figsize, gridspec_kw=kw)
     fig.suptitle(f'{dataset_descriptor} PWR Time {start_time.strftime("%Y%m%d")} {start_time.strftime("%H:%M:%S")} to '
@@ -508,17 +469,6 @@ def plot_averaged_range_time_data(data_array, timestamps_array, dataset_descript
     ax2.set_ylabel('Range gate number')
     ax2.set_xlabel('Record number (spans time)')
 
-    # extent=[x_lims[0], x_lims[1], y_lims[0], y_lims[1]], 
-
-    # Using datetimes as below can be misleading because it is just using
-    # a range and our sequences are not necessarily evenly spaced across 
-    # the time range. Not going to plot this way until a better method can
-    # be found.
-    # ax2.xaxis_date()
-    # date_format = mdates.DateFormatter('%H:%M:%S')
-    # ax2.xaxis.set_major_formatter(date_format)
-    # fig.autofmt_xdate()
-    # ax2.tick_params(axis='x', which='major', labelsize='15')
     fig.colorbar(img, cax=cax2, label='Raw Power (dB)')
     cax1.axis('off') 
 
@@ -529,7 +479,7 @@ def plot_averaged_range_time_data(data_array, timestamps_array, dataset_descript
 
 
 def plot_rawacf_lag_pwr(rawacf_file, beam_nums=None, lag_nums=None, datasets=None, num_processes=3, vmax=50.0,
-                        vmin=10.0, plot_directory='', figsize=(32, 16)):
+                        vmin=10.0, plot_directory='', figsize=(12, 10)):
     """
     Plots the lag xcf phase of rawacf.hdf5 file, lag number found via lag_index.
     
@@ -543,31 +493,34 @@ def plot_rawacf_lag_pwr(rawacf_file, beam_nums=None, lag_nums=None, datasets=Non
 
     Parameters 
     ----------
-    rawacf_file
+    rawacf_file: str
         The filename that you are plotting data from for plot title.
-    beam_nums
+    beam_nums: list[int]
         The list of beam numbers to plot. Default None which allows all beams 
         available in the file to be plotted.
-    lag_nums
+    lag_nums: list[int]
         The list of lag numbers to plot. Default [0] to plot only lag0pwr.
         lag_nums=None allows all lags available in the file to be plotted.
-    datasets
-        The datasets to plot. Default all (acfs, intf_acfs, and xcfs). 
-    num_processes
+    datasets: list[str]
+        The datasets to plot. Default all [acfs, intf_acfs, and xcfs].
+    num_processes: int
         The number of processes to use to plot the data from the beam_nums
-        and lag_nums
-    vmax
-        Max power for the color bar on the plot. Default 50 dB.
-    vmin
-        Min power for the color bar on the plot.  Default 10 dB.
-    plot_directory
+        and lag_nums. Default 3.
+    vmax: float
+        Max power for the color bar on the plot, in dB. Default 50 dB.
+    vmin: float
+        Min power for the color bar on the plot, in dB.  Default 10 dB.
+    plot_directory: str
         The directory that generated plots will be saved in. Default '', which
         will save plots in the same location as the input file.
-    figsize
-        The size of the figure to create, in inches across by inches tall.
+    figsize: tuple (float, float)
+        The size of the figure to create, in inches across by inches tall. Default (12, 10)
     """
     # Try to guess the correct file structure
-    if "site" in rawacf_file:
+    basename = os.path.basename(rawacf_file)
+    is_site_file = 'site' in basename
+
+    if is_site_file:
         reader = BorealisRead(rawacf_file, 'rawacf', 'site')
     else:
         reader = BorealisRead(rawacf_file, 'rawacf', 'array')
@@ -620,7 +573,7 @@ def plot_rawacf_lag_pwr(rawacf_file, beam_nums=None, lag_nums=None, datasets=Non
 
     for dataset in datasets:
         if dataset not in ['main_acfs', 'intf_acfs', 'xcfs']:
-            raise ValueError(f'Dataset not available in rawacf file: {dataset}')
+            raise ValueError(f'Dataset {dataset} not available in rawacf file {rawacf_file}')
 
     arg_tuples = []
     print(rawacf_file)
@@ -674,8 +627,8 @@ def plot_rawacf_lag_pwr(rawacf_file, beam_nums=None, lag_nums=None, datasets=Non
         plots_index += num_processes
 
 
-def plot_rawrf_data(rawrf_file, antenna_nums=None, num_processes=3, sequence_nums=[0], plot_directory='',
-                    figsize=(32, 16)):
+def plot_rawrf_data(rawrf_file, antenna_nums=None, num_processes=3, sequence_nums=None, plot_directory='',
+                    figsize=(12, 10)):
     """
     Plots a sequence of samples from a rawrf file.
 
@@ -685,22 +638,22 @@ def plot_rawrf_data(rawrf_file, antenna_nums=None, num_processes=3, sequence_num
 
     Parameters
     ----------
-    rawrf_file
+    rawrf_file: str
         The filename that you are plotting data from for plot title.
-    antenna_nums
+    antenna_nums: list[int]
         List of antennas you want to plot. Rawrf files do not store
         antennas_array_order, so this is simply indexed from 0. If your
         radar has a different antenna order, this will fail silently, but
-        still naively plot the antennas just with the wrong labels.
-    num_processes
-        The number of processes to use to plot the data.
-    sequence_nums
-        The index of sequences in the first record to plot. Default [0]
-    plot_directory
+        still naively plot the antennas just with the wrong labels. Default None, which plots all antennas.
+    num_processes: int
+        The number of processes to use to plot the data. Default 3.
+    sequence_nums: list[int]
+        The index of sequences in the first record to plot. Default None, which plots all sequences.
+    plot_directory: str
         The directory that generated plots will be saved in. Default '', which
         will save plots in the same location as the input file.
-    figsize
-        The size of the figure to create, in inches across by inches tall.
+    figsize: tuple (float, float)
+        The size of the figure to create, in inches across by inches tall. Default (12, 10)
     """
     basename = os.path.basename(rawrf_file)
 
@@ -714,15 +667,13 @@ def plot_rawrf_data(rawrf_file, antenna_nums=None, num_processes=3, sequence_num
 
     time_of_plot = '.'.join(basename.split('.')[0:6])
 
-    # reader = BorealisRead(rawrf_file, 'rawrf', 'site')
-    # records = reader.records
-    #
-    # record = records[0]
     records = dd.io.load(rawrf_file)
     record_keys = sorted(list(records.keys()))
 
     record = records[record_keys[0]]
 
+    # This little hack was made to deal with rawrf files afflicted by Issue #258 on the Borealis GitHub, which
+    # has since been solved. It should work for all rawrf files regardless.
     num_sequences, num_antennas, num_samps = record['data_dimensions']
     total_samples = record['data'].size
     sequences_stored = int(total_samples / num_samps / num_antennas)
@@ -736,15 +687,17 @@ def plot_rawrf_data(rawrf_file, antenna_nums=None, num_processes=3, sequence_num
         antenna_indices = antenna_nums
     antenna_names = [f'antenna_{a}' for a in antenna_nums]
 
-    sequence_indices = []
-    # Check that the sequence_nums are valid
-    for num in sequence_nums:
-        if num < 0 or num > num_sequences:
-            print(f"{num} is not a valid sequence index. Valid indices for this file are 0-{num_sequences-1}.")
-        else:
-            sequence_indices.append(num)
-    if len(sequence_indices) == 0:
-        sequence_indices = [0]
+    if sequence_nums is None:
+        sequence_indices = [i for i in range(num_sequences)]
+    else:
+        sequence_indices = [num for num in sequence_nums if 0 < num < num_sequences]
+        invalid_indices = [num for num in sequence_nums if num not in sequence_indices]
+        if len(invalid_indices) != 0:
+            print(f'Warning: sequence numbers {invalid_indices} not in file {rawrf_file}.')
+
+        if len(sequence_indices) == 0:  # None of the input sequences were valid
+            print(f'No requested sequences from {sequence_nums} found in file {rawrf_file}.')
+            return
 
     timestamps_data = record['sqn_timestamps']
     sampling_rate = record['rx_sample_rate']
@@ -792,37 +745,35 @@ def plot_iq_data(voltage_samples, timestamps_array, dataset_descriptor, plot_fil
 
     Parameters
     ----------
-    voltage_samples
+    voltage_samples: ndarray
         Array with shape num_sequences x num_samps for some
         dataset.
-    timestamps_array
+    timestamps_array: ndarray
         Array of timestamps with dimensions num_sequences.
-    dataset_descriptor
+    dataset_descriptor: str
         Name for dataset, to be included in plot title.
-    plot_filename_prefix
+    plot_filename_prefix: str
         Path and beginning of filename to save plot. Since several plots are generated, there will be
         multiple plots saved, all sharing this same prefix.
-    sample_rate
+    sample_rate: float
         Sampling rate of the data in the file. Hz
-    figsize
+    figsize: tuple (float, float)
         Size of the plotted figure, in inches.
     """
     print(dataset_descriptor)
-    num_sequences, num_samps = voltage_samples.shape
 
     start_time = datetime.datetime.utcfromtimestamp(timestamps_array[0])
     end_time = datetime.datetime.utcfromtimestamp(timestamps_array[-1])
-
-    # take the transpose to get sequences x samps for the dataset
-    # new_power_array = np.transpose(power_array)
 
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=figsize)
     fig.suptitle(f'{dataset_descriptor} Raw Voltage Sequence Time {start_time.strftime("%Y%m%d")} '
                  f'{start_time.strftime("%H:%M:%S")} to {end_time.strftime("%H:%M:%S")} UT')
 
     # plot one sequence (real and imaginary))
-    ax1.plot(np.arange(0, len(voltage_samples[0, :]))/sample_rate*1e6, np.real(voltage_samples[0, :]), label='In-Phase')
-    ax1.plot(np.arange(0, len(voltage_samples[0, :]))/sample_rate*1e6, np.imag(voltage_samples[0, :]), label='Quadrature')
+    ax1.plot(np.arange(0, len(voltage_samples[0, :]))/sample_rate*1e6, np.real(voltage_samples[0, :]),
+             label='In-Phase')
+    ax1.plot(np.arange(0, len(voltage_samples[0, :]))/sample_rate*1e6, np.imag(voltage_samples[0, :]),
+             label='Quadrature')
     ax1.legend()
     ax1.set_ylabel('Arbitrary Units')
 
@@ -834,7 +785,6 @@ def plot_iq_data(voltage_samples, timestamps_array, dataset_descriptor, plot_fil
     plot_name = plot_filename_prefix + '_time.jpg'
     print(plot_name)
     plt.savefig(plot_name)
-    # plt.show()
     plt.close()
 
     # Take FFT
