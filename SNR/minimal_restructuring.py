@@ -23,7 +23,7 @@ def antennas_iq_site_to_array(antennas_iq_file, antenna_nums=None):
     antennas_iq_file:   str
         Path to an antennas_iq site-structured file.
     antenna_nums:       list
-        List of antenna indices to retrieve. Entries should be ints.
+        List of antenna indices to retrieve. Entries should be ints. Default None which retrieves all.
 
     Returns
     -------
@@ -40,7 +40,8 @@ def antennas_iq_site_to_array(antennas_iq_file, antenna_nums=None):
     group = dd.io.load(antennas_iq_file)
     timestamps = sorted(list(group.keys()))
 
-    arrays['antenna_arrays_order'] = group[timestamps[0]]['antenna_arrays_order']
+    antenna_arrays_order = group[timestamps[0]]['antenna_arrays_order']
+    arrays['antenna_arrays_order'] = antenna_arrays_order
 
     num_records = len(timestamps)
     num_sequences_array = np.zeros(num_records, dtype=np.uint32)
@@ -48,13 +49,11 @@ def antennas_iq_site_to_array(antennas_iq_file, antenna_nums=None):
     # typically, antenna names and antenna indices are the same except
     # where certain antennas were skipped in data writing for any reason.
     if antenna_nums is None or len(antenna_nums) == 0:
-        antenna_indices = list(range(0, arrays['antenna_arrays_order'].size))
-        antenna_names = list(arrays['antenna_arrays_order'])
+        antenna_indices = list(range(0, antenna_arrays_order.size))
+        antenna_names = list(antenna_arrays_order)
     else:
-        antenna_indices = []
+        antenna_indices = [list(antenna_arrays_order).index('antenna_' + str(i)) for i in antenna_nums]
         antenna_names = [f'antenna_{a}' for a in antenna_nums]
-        for antenna_num in antenna_nums:
-            antenna_indices.append(list(arrays['antenna_arrays_order']).index('antenna_' + str(antenna_num)))
 
     # Get the maximum number of sequences for a record in the file
     max_sequences = 0
