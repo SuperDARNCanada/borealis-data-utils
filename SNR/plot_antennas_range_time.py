@@ -64,8 +64,9 @@ if __name__ == '__main__':
         if len(sizes) == 1:
             sizes.append(sizes[0])  # If they only pass in one size, assume they want a square plot.
         else:
-            sizes = sizes[:2]  # If they pass in more than 2 sizes, truncate to just the first two.
-            print(f'Warning: only keeping {sizes} from input figure size.')
+            if len(sizes) > 2:
+                print(f'Warning: only keeping {sizes[:2]} from input figure size.')
+            sizes = sizes[:2]
 
     plot_antennas_range_time(filename, antenna_nums=antenna_nums, num_processes=args.num_processes, vmax=args.max_power,
                              vmin=args.min_power, start_sample=args.start_sample, end_sample=args.end_sample,
