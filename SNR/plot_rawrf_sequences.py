@@ -1,31 +1,29 @@
-# Copyright 2019 SuperDARN Canada, University of Saskatchewan
-# Author: Marci Detwiller
-# Modified: Dec. 2, 2021 (Remington Rohel)
+# Copyright 2021 SuperDARN Canada, University of Saskatchewan
+# Author: Remington Rohel
 """
-This script is used to plot all antennas range-time data from a single
-antennas_iq file.
+This script is used to plot rawrf data from a single rawrf file.
 """
 
 import argparse
-from hdf5_rtplot_utils import plot_antennas_range_time
+from hdf5_rtplot_utils import plot_rawrf_data
 import utils
 
 
 def usage_msg():
     """
     Return the usage message for this process.
-     
+
     This is used if a -h flag or invalid arguments are provided.
-    
+
     Returns
-    ------- 
+    -------
     usage_message: str
-        The usage message on how to use this 
+        The usage message on how to use this
     """
 
-    usage_message = """ plot_antennas_range_time.py [-h] antennas_iq_file
-    
-    Pass in the name of the antennas_iq file that you want to plot range time data from. 
+    usage_message = """ plot_rawrf_sequences.py [-h] rawrf_file
+
+    Pass in the name of the rawrf file that you want to plot data from. 
     Antenna numbers will be plotted on separate plots.
     """
 
@@ -34,12 +32,9 @@ def usage_msg():
 
 def plot_parser():
     parser = argparse.ArgumentParser(usage=usage_msg())
-    parser.add_argument("antennas_iq_file", help="Name of the file to plot.")
+    parser.add_argument("rawrf_file", help="Name of the file to plot.")
     parser.add_argument("--antennas", help="Antenna indices to plot. Format as --antennas=0,2-4,8")
-    parser.add_argument("--max-power", help="Maximum Power of color scale (dB).", default=40.0, type=float)
-    parser.add_argument("--min-power", help="Minimum Power of color scale (dB).", default=10.0, type=float)
-    parser.add_argument("--start-sample", help="Sample Number to start at.", default=0, type=int)
-    parser.add_argument("--end-sample", help="Sample Number to end at.", default=70, type=int)
+    parser.add_argument("--sequences", help="Sequence indices to plot. Format as --sequences=0,2-4,8")
     parser.add_argument("--plot-directory", help="Directory to save plots.", default='', type=str)
     parser.add_argument("--figsize", help="Figure dimensions in inches. Format as --figsize=10,6", type=str)
     parser.add_argument("--num-processes", help="Number of processes to use for plotting.", default=3, type=int)
@@ -47,14 +42,18 @@ def plot_parser():
 
 
 if __name__ == '__main__':
-    antennas_iq_parser = plot_parser()
-    args = antennas_iq_parser.parse_args()
+    rawrf_parser = plot_parser()
+    args = rawrf_parser.parse_args()
 
-    filename = args.antennas_iq_file
+    filename = args.rawrf_file
 
     antenna_nums = []
     if args.antennas is not None:
         antenna_nums = utils.build_list_from_input(args.antennas)
+
+    sequence_nums = []
+    if args.sequences is not None:
+        sequence_nums = utils.build_list_from_input(args.sequences)
 
     sizes = (32, 16)    # Default figsize
     if args.figsize is not None:
@@ -68,6 +67,5 @@ if __name__ == '__main__':
                 print(f'Warning: only keeping {sizes[:2]} from input figure size.')
             sizes = sizes[:2]
 
-    plot_antennas_range_time(filename, antenna_nums=antenna_nums, num_processes=args.num_processes, vmax=args.max_power,
-                             vmin=args.min_power, start_sample=args.start_sample, end_sample=args.end_sample,
-                             plot_directory=args.plot_directory, figsize=sizes)
+    plot_rawrf_data(filename, antenna_nums=antenna_nums, num_processes=args.num_processes, sequence_nums=sequence_nums,
+                    plot_directory=args.plot_directory, figsize=sizes)
