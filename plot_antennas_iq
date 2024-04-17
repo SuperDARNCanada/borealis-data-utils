@@ -43,7 +43,7 @@ daily_files=$(find "${data_dir}" "${failed_dir}" -type f -regex ".*\(${search_1}
 echo "${daily_files}"
 
 # Need pydarnio-env to plot files
-source ${HOME}/pydarn-env/bin/activate
+source ${HOME}/pydarnio-env/bin/activate
 
 for f in ${daily_files}; do
   python3 ${HOME}/borealis-data-utils/SNR/plot_antennas_range_time.py "${f}" --plot-directory=${fullsize_dir} --num-processes=1
