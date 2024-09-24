@@ -231,7 +231,9 @@ def plot_antennas_range_time(antennas_iq_file, antenna_nums=None, num_processes=
     plotted = False
     for antenna_num, antenna_name in iterable:
         antenna_data = arrays['data'][:, antenna_num, :, :]
-        plot_filename = f'{directory_name}/{time_of_plot}.{antenna_name}_{start_sample}_{end_sample}.jpg'
+
+        # Decode antenna_name as iterable was returning a bytes type class to antenna_name
+        plot_filename = f'{directory_name}/{time_of_plot}.{antenna_name.decode("ASCII")}_{start_sample}_{end_sample}.jpg'
         if num_processes == 1:
             # If the system is memory-limited, we can save memory by plotting in this thread
             plot_unaveraged_range_time_data(antenna_data, sequences_data, timestamps_data, antenna_name, plot_filename,
