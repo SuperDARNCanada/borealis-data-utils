@@ -321,7 +321,7 @@ if __name__ == '__main__':
         day = one_day.strftime("%d")
         print(f"{year}{month}{day}")
 
-        files = sorted(glob.glob(f"{data_dir}/{year}/{month}/{year}{month}{day}{args.filetype}.hdf5*"))
+        files = sorted(glob.glob(f"{data_dir}/{year}/{month}/{year}{month}{day}*{args.filetype}.hdf5*"))
 
         jobs = []
         files_left = True
@@ -361,7 +361,7 @@ if __name__ == '__main__':
                 timestamps_dict[one_day].insert(0, first_timestamp)
             else:
                 timestamps_dict[one_day] = [first_timestamp]
-        elif one_day == end_day:
+        if one_day == end_day:
             last_timestamp = (end_day+datetime.timedelta(seconds=59, minutes=59, hours=23)).timestamp()
             if one_day in timestamps_dict.keys():
                 timestamps_dict[one_day].append(last_timestamp)
