@@ -224,7 +224,8 @@ def print_gaps(gaps_dict, first_timestamp, last_timestamp, gap_spacing, print_fi
     print(' ')
     with open(print_filename, 'r') as f:
         lines = f.readlines()
-        print(lines)
+        for line in lines:
+            print(line.strip())
 
 
 def usage_msg():
@@ -315,9 +316,12 @@ if __name__ == '__main__':
 
     for one_day in daterange(start_day, end_day):
         # Get all the filenames and then all the timestamps for this day.
-        print(one_day.strftime("%Y%m%d"))
+        year = one_day.strftime("%Y")
+        month = one_day.strftime("%m")
+        day = one_day.strftime("%d")
+        print(f"{year}{month}{day}")
 
-        files = sorted(glob.glob(f"{data_dir}/*{args.filetype}.hdf5*"))
+        files = sorted(glob.glob(f"{data_dir}/{year}/{month}/{year}{month}{day}{args.filetype}.hdf5*"))
 
         jobs = []
         files_left = True
