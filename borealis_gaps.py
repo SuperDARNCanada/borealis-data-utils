@@ -46,7 +46,7 @@ def get_record_timestamps(filename, record_dict):
             for r in recs:
                 rec = f[r]
                 sqn_timestamps.append(rec["sqn_timestamps"][0])
-            sqn_timestamps = np.concatenate(sqn_timestamps)
+            sqn_timestamps = np.array(sqn_timestamps)
 
     record_dict[filename] = sqn_timestamps
 
@@ -183,7 +183,7 @@ def print_gaps(gaps_dict, first_timestamp, last_timestamp, gap_spacing, print_fi
 
     strf_format = '%Y%m%d %H:%M:%S'
 
-    with open(print_filename, "a") as f:
+    with open(print_filename, "w") as f:
         print('GAPS GREATER THAN {} s BETWEEN {} and {}:,'.format(
             str(gap_spacing), first_timestamp.strftime(strf_format),
             last_timestamp.strftime(strf_format)), file=f)
@@ -319,9 +319,10 @@ if __name__ == '__main__':
         year = one_day.strftime("%Y")
         month = one_day.strftime("%m")
         day = one_day.strftime("%d")
-        print(f"{year}{month}{day}")
+        date_str = one_day.strftime("%Y%m%d")
+        print(f"{date_str}")
 
-        files = sorted(glob.glob(f"{data_dir}/{year}/{month}/{year}{month}{day}*{args.filetype}.hdf5*"))
+        files = sorted(glob.glob(f"{date_str}*{args.filetype}.hdf5*", recursive=True))
 
         jobs = []
         files_left = True
