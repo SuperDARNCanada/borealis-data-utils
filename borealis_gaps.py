@@ -322,7 +322,7 @@ if __name__ == '__main__':
         date_str = one_day.strftime("%Y%m%d")
         print(f"{date_str}")
 
-        files = sorted(glob.glob(f"{date_str}*{args.filetype}.hdf5*", recursive=True))
+        files = sorted(glob.glob(f"{data_dir}**/{date_str}*{args.filetype}.hdf5*", recursive=True))
 
         jobs = []
         files_left = True
