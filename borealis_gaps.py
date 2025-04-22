@@ -22,6 +22,7 @@ import os
 
 import h5py
 import numpy as np
+import pydarnio
 
 
 def get_record_timestamps(filename, record_dict):
@@ -37,16 +38,30 @@ def get_record_timestamps(filename, record_dict):
         record_dictionary to append the entry filename: timestamps list
     """
     print('Getting timestamps from file : ' + filename)
-    with h5py.File(filename, 'r') as f:
-        recs = sorted(list(f.keys()))
-        if "sqn_timestamps" in recs:
-            sqn_timestamps = f["sqn_timestamps"][:, 0]
-        else:
-            sqn_timestamps = []
-            for r in recs:
-                rec = f[r]
-                sqn_timestamps.append(rec["sqn_timestamps"][0])
-            sqn_timestamps = np.array(sqn_timestamps)
+    if filename.endswith("hdf5.site") or filename.endswith("hdf5") or filename.endswith("h5"):
+        with h5py.File(filename, 'r') as f:
+            recs = sorted(list(f.keys()))
+            if "sqn_timestamps" in recs:
+                sqn_timestamps = [datetime.datetime.fromtimestamp(x) for x in f["sqn_timestamps"][:, 0]]
+            else:
+                sqn_timestamps = []
+                for r in recs:
+                    rec = f[r]
+                    sqn_timestamps.append(datetime.datetime.fromtimestamp(rec["sqn_timestamps"][0]))
+    else:
+        recs = pydarnio.read_dmap(filename)
+        sqn_timestamps = []
+        for r in recs:
+            tstamp = datetime.datetime(
+                r['time.yr'],
+                r['time.mo'],
+                r['time.dy'],
+                r['time.hr'],
+                r['time.mt'],
+                r['time.sc'],
+                r['time.us'],
+            )
+            sqn_timestamps.append(tstamp)
 
     record_dict[filename] = sqn_timestamps
 
@@ -101,12 +116,9 @@ def check_for_gaps_between_records(timestamp_list, gap_spacing):
     gaps_list = []
 
     sorted_list = sorted(timestamp_list)
-    for record_num, record in enumerate(sorted_list):
-        if record_num == len(sorted_list) - 1:
-            continue
-        this_record = datetime.datetime.utcfromtimestamp(float(record))
-        expected_next_record = this_record + datetime.timedelta(seconds=float(gap_spacing))
-        if datetime.datetime.utcfromtimestamp(float(sorted_list[record_num + 1])) > expected_next_record:
+    for record_num, record in enumerate(sorted_list[:-1]):
+        expected_next_record = record + datetime.timedelta(seconds=float(gap_spacing))
+        if sorted_list[record_num + 1] > expected_next_record:
             # append the gap to the dictionary list where key = filename,
             # value = list of gaps. Gaps are lists of (gap_start, gap_end)
             gaps_list = gaps_list + [(record, sorted_list[record_num + 1])]
@@ -138,19 +150,16 @@ def check_for_gaps_between_days(timestamps_dict, gap_spacing, gaps_dict):
     previous_last_record = timestamps_dict[sorted_days[0]][-1]
     for day_num, day in enumerate(sorted_days):
         if day_num == 0:
-            continue # skip first one
+            continue  # skip first one
         sorted_timestamps = sorted(timestamps_dict[day])
         # last record integration start time in the first file.
-        previous_end_time = datetime.datetime.utcfromtimestamp(float(previous_last_record))
         first_record = sorted_timestamps[0]
-        last_record = sorted_timestamps[-1]
-        start_time = datetime.datetime.utcfromtimestamp(float(first_record))
-        if start_time > previous_end_time + datetime.timedelta(seconds=float(gap_spacing)):
+        if first_record > previous_last_record + datetime.timedelta(seconds=float(gap_spacing)):
             # append gap to this day's list of gaps. Dict key is day, list is list of (gap_start, gap_end)
             if day not in gaps_dict.keys():
                 gaps_dict[day] = []
             gaps_dict[day] = [(previous_last_record, first_record)] + gaps_dict[day]
-        previous_last_record = last_record
+        previous_last_record = sorted_timestamps[-1]
     return gaps_dict
 
 
@@ -198,12 +207,10 @@ def print_gaps(gaps_dict, first_timestamp, last_timestamp, gap_spacing, print_fi
             gaps = gaps_dict[day]
             if gaps:  # not empty
                 for (gap_start, gap_end) in gaps:
-                    gap_start_time = datetime.datetime.utcfromtimestamp(float(gap_start))
-                    gap_end_time = datetime.datetime.utcfromtimestamp(float(gap_end))
-                    gap_duration = gap_end_time - gap_start_time
+                    gap_duration = gap_end - gap_start
                     duration = gap_duration.total_seconds()
                     duration_min = round(duration/60.0, 1)
-                    print(f"{gap_start_time.strftime(strf_format)} ,{gap_end_time.strftime(strf_format)} ,{duration_min:.1f},,", file=f)
+                    print(f"{gap_start.strftime(strf_format)} ,{gap_end.strftime(strf_format)} ,{duration_min:.1f},,", file=f)
                     duration_dict[day] += duration_min
 
         # end table, print new line
@@ -228,39 +235,21 @@ def print_gaps(gaps_dict, first_timestamp, last_timestamp, gap_spacing, print_fi
             print(line.strip())
 
 
-def usage_msg():
-    """
-    Return the usage message for this process.
-
-    This is used if a -h flag or invalid arguments are provided.
-
-    Returns
-    -------
-    usage_message: str
-        The usage message on how to use this
-    """
-
-    usage_message = """ borealis_gaps.py [-h] data_dir start_day end_day
-
-    Pass in the raw data directory that you want to check for borealis gaps. This script uses
-    multiprocessing to check for gaps in the hdf5 files of each day and gaps between the days.
-
-    This script will use the find command to find files from the specified days in the given
-    data directory.
-    """
-
-    return usage_message
-
-
 def borealis_gaps_parser():
-    parser = argparse.ArgumentParser(usage=usage_msg())
+    parser = argparse.ArgumentParser(
+        description="""Pass in the raw data directory that you want to check for borealis gaps. This script uses 
+        multiprocessing to check for gaps in the hdf5 files of each day and gaps between the days.
+        
+        This script will use the find command to find files from the specified days in the given
+        data directory."""
+    )
     parser.add_argument("data_dir",
                         help="Path to the directory that holds any directory structure which within contains all "
                              "*[filetype].hdf5 or .hdf5.site files from the dates you wish to get downtimes.")
     parser.add_argument("start_day", help="First day to check, given as YYYYMMDD.")
     parser.add_argument("end_day", help="Last day to check, given as YYYYMMDD.")
-    parser.add_argument("--filetype", default="rawacf",
-                        help="The filetype that you want to check gaps in (bfiq or rawacf typical). Default 'rawacf'")
+    parser.add_argument("--suffix", default="rawacf*", help="Pattern for matching (globbing) file suffixes. "
+                                                            "Default is files with 'rawacf' in the name.")
     parser.add_argument("--gap_spacing", type=float, default=120.0,
                         help="The gap spacing that you wish to check the file for, in seconds. Default 120s.")
     parser.add_argument("--num_processes", type=int, default=4,
@@ -322,7 +311,7 @@ if __name__ == '__main__':
         date_str = one_day.strftime("%Y%m%d")
         print(f"{date_str}")
 
-        files = sorted(glob.glob(f"{data_dir}**/{date_str}*{args.filetype}.hdf5*", recursive=True))
+        files = sorted(glob.glob(f"{data_dir}**/{date_str}*{args.suffix}", recursive=True))
 
         jobs = []
         files_left = True
@@ -357,13 +346,13 @@ if __name__ == '__main__':
             timestamps_dict[one_day] = combine_timestamp_lists(record_dict[one_day])
 
         if one_day == start_day:
-            first_timestamp = start_day.timestamp()
+            first_timestamp = start_day
             if one_day in timestamps_dict.keys():
                 timestamps_dict[one_day].insert(0, first_timestamp)
             else:
                 timestamps_dict[one_day] = [first_timestamp]
         if one_day == end_day:
-            last_timestamp = (end_day+datetime.timedelta(seconds=59, minutes=59, hours=23)).timestamp()
+            last_timestamp = (end_day+datetime.timedelta(seconds=59, minutes=59, hours=23))
             if one_day in timestamps_dict.keys():
                 timestamps_dict[one_day].append(last_timestamp)
             else:
@@ -377,8 +366,8 @@ if __name__ == '__main__':
 
     sorted_days = sorted(timestamps_dict.keys())
     # first timestamp is first day's first timestamp
-    first_timestamp = datetime.datetime.utcfromtimestamp(float(sorted(timestamps_dict[sorted_days[0]])[0]))
+    first_timestamp = sorted(timestamps_dict[sorted_days[0]])[0]
     # last timestamp is last day's last timestamp
-    last_timestamp = datetime.datetime.utcfromtimestamp(float(sorted(timestamps_dict[sorted_days[-1]])[-1]))
+    last_timestamp = sorted(timestamps_dict[sorted_days[-1]])[-1]
     print_gaps(gaps_dict, first_timestamp, last_timestamp, args.gap_spacing, print_filename)
 
