@@ -42,12 +42,12 @@ def get_record_timestamps(filename, record_dict):
         with h5py.File(filename, 'r') as f:
             recs = sorted(list(f.keys()))
             if "sqn_timestamps" in recs:
-                sqn_timestamps = [datetime.datetime.fromtimestamp(x) for x in f["sqn_timestamps"][:, 0]]
+                sqn_timestamps = [datetime.datetime.fromtimestamp(x, tz=datetime.timezone.utc) for x in f["sqn_timestamps"][:, 0]]
             else:
                 sqn_timestamps = []
                 for r in recs:
                     rec = f[r]
-                    sqn_timestamps.append(datetime.datetime.fromtimestamp(rec["sqn_timestamps"][0]))
+                    sqn_timestamps.append(datetime.datetime.fromtimestamp(rec["sqn_timestamps"][0], tz=datetime.timezone.utc))
     else:
         recs = pydarnio.read_dmap(filename)
         sqn_timestamps = []
@@ -60,6 +60,7 @@ def get_record_timestamps(filename, record_dict):
                 r['time.mt'],
                 r['time.sc'],
                 r['time.us'],
+                tzinfo=datetime.timezone.utc,
             )
             sqn_timestamps.append(tstamp)
 
@@ -220,12 +221,17 @@ def print_gaps(gaps_dict, first_timestamp, last_timestamp, gap_spacing, print_fi
             total_duration_min += duration
         total_duration_hrs = round(total_duration_min/60.0, 1)
         total_duration_days = round(total_duration_hrs/24.0, 1)
+        timeperiod = last_timestamp - first_timestamp
+        downtime_percentage = (total_duration_min * 60) / timeperiod.total_seconds() * 100.0
+        uptime_percentage = 100.0 - downtime_percentage
         print('TOTAL DOWNTIME DURATION IN PERIOD from {} to {}: ,\n'.format(
             first_timestamp.strftime(strf_format),
             last_timestamp.strftime(strf_format)), file=f)
         print(f'{total_duration_min} minutes,\n', file=f)
         print(f'{total_duration_hrs} hours,\n', file=f)
         print(f'{total_duration_days} days,\n', file=f)
+        print(f'{uptime_percentage:.1f}% uptime,\n', file=f)
+        print(f'{downtime_percentage:.1f}% downtime,\n', file=f)
 
     # Print the results to screen
     print(' ')
