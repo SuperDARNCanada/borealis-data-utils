@@ -243,19 +243,17 @@ def print_gaps(gaps_dict, first_timestamp, last_timestamp, gap_spacing, print_fi
 
 def borealis_gaps_parser():
     parser = argparse.ArgumentParser(
-        description="""Pass in the raw data directory that you want to check for borealis gaps. This script uses 
-        multiprocessing to check for gaps in the hdf5 files of each day and gaps between the days.
-        
-        This script will use the find command to find files from the specified days in the given
-        data directory."""
+        description="""Pass in the directory with files that you want to check for borealis gaps. This script uses 
+        multiprocessing to check for gaps in the hdf5 and/or dmap files of each day and gaps between the days.
+        """
     )
     parser.add_argument("data_dir",
                         help="Path to the directory that holds any directory structure which within contains all "
-                             "*[filetype].hdf5 or .hdf5.site files from the dates you wish to get downtimes.")
+                             "files from the dates you wish to get downtimes.")
     parser.add_argument("start_day", help="First day to check, given as YYYYMMDD.")
     parser.add_argument("end_day", help="Last day to check, given as YYYYMMDD.")
     parser.add_argument("--suffix", default="rawacf*", help="Pattern for matching (globbing) file suffixes. "
-                                                            "Default is files with 'rawacf' in the name.")
+                                                            "Default is files with 'rawacf' in the name, i.e. ending in 'rawacf*'.")
     parser.add_argument("--gap_spacing", type=float, default=120.0,
                         help="The gap spacing that you wish to check the file for, in seconds. Default 120s.")
     parser.add_argument("--num_processes", type=int, default=4,
