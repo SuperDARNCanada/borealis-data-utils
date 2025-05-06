@@ -152,9 +152,9 @@ def print_gaps(gaps, first_timestamp, last_timestamp, gap_spacing, print_filenam
             ),
             file=f,
         )
-        print(f"{total_duration_min} minutes,", file=f)
-        print(f"{total_duration_hrs} hours,", file=f)
-        print(f"{total_duration_days} days,", file=f)
+        print(f"{total_duration_min:.1f} minutes,", file=f)
+        print(f"{total_duration_hrs:.1f} hours,", file=f)
+        print(f"{total_duration_days:.1f} days,", file=f)
         print(f"{uptime_percentage:.1f}% uptime,", file=f)
         print(f"{downtime_percentage:.1f}% downtime,", file=f)
 
