@@ -48,7 +48,7 @@ def get_record_timestamps(filename):
                         )
                     )
     else:
-        recs = pydarnio.read_dmap(filename)
+        recs = pydarnio.read_dmap(filename, mode="strict")
         sqn_timestamps = []
         for r in recs:
             tstamp = datetime.datetime(
@@ -91,7 +91,7 @@ def check_for_gaps(timestamp_list, gap_spacing):
     return gaps
 
 
-def print_gaps(gaps, first_timestamp, last_timestamp, gap_spacing, print_filename):
+def print_gaps(gaps, first_timestamp, last_timestamp, gap_spacing, print_filename, uptime=False):
     """
     Printer function for a dictionary of gaps. Prints csv
     table for easy integration into documents.
@@ -108,6 +108,8 @@ def print_gaps(gaps, first_timestamp, last_timestamp, gap_spacing, print_filenam
         Gap spacing used, in s.
     print_filename
         filename to print the gaps table to, in addition to the stdout.
+    uptime
+        gaps actually represent times when data was found.
     """
 
     strf_format = "%Y%m%d %H:%M:%S"
@@ -141,12 +143,22 @@ def print_gaps(gaps, first_timestamp, last_timestamp, gap_spacing, print_filenam
         total_duration_hrs = round(total_duration_min / 60.0, 1)
         total_duration_days = round(total_duration_hrs / 24.0, 1)
         timeperiod = last_timestamp - first_timestamp
-        downtime_percentage = (
-            (total_duration_min * 60) / timeperiod.total_seconds() * 100.0
-        )
-        uptime_percentage = 100.0 - downtime_percentage
+        if uptime:
+            uptime_percentage = (
+                (total_duration_min * 60) / timeperiod.total_seconds() * 100.0
+            )
+            downtime_percentage = 100.0 - uptime_percentage
+            time_type = "UPTIME"
+        else:
+            downtime_percentage = (
+                (total_duration_min * 60) / timeperiod.total_seconds() * 100.0
+            )
+            uptime_percentage = 100.0 - downtime_percentage
+            time_type = "DOWNTIME"
+        
         print(
-            "TOTAL DOWNTIME DURATION IN PERIOD from {} to {}: ,".format(
+            "TOTAL {} DURATION IN PERIOD from {} to {}".format(
+                time_type,
                 first_timestamp.strftime(strf_format),
                 last_timestamp.strftime(strf_format),
             ),
@@ -196,6 +208,11 @@ def borealis_gaps_parser():
         type=int,
         default=4,
         help="The number of processes to use in the multiprocessing, default 4.",
+    )
+    parser.add_argument(
+        "--uptime",
+        action="store_true",
+        help="If given, returns the times when data WAS found."
     )
     parser.add_argument(
         "--gaps_table_file",
@@ -249,10 +266,11 @@ if __name__ == "__main__":
         # Get all the filenames and then all the timestamps for this day.
         date_str = one_day.strftime("%Y%m%d")
         print(f"{date_str}")
-
+        
         files = sorted(
             glob.glob(f"{data_dir}**/{date_str}*{args.suffix}", recursive=True)
         )
+        print(f"{len(files)} files found")
         daily_timestamps = list()
 
         with get_context("spawn").Pool(args.num_processes) as pool:
@@ -271,6 +289,12 @@ if __name__ == "__main__":
         all_timestamps.extend(sorted(daily_timestamps))
 
     gaps = check_for_gaps(all_timestamps, args.gap_spacing)
+    if args.uptime:
+        non_gaps = []
+        for i in range(1, len(gaps)):
+            non_gaps.append((gaps[i-1][1], gaps[i][0]))
+        gaps = non_gaps
+
     print_gaps(
-        gaps, all_timestamps[0], all_timestamps[-1], args.gap_spacing, print_filename
+        gaps, all_timestamps[0], all_timestamps[-1], args.gap_spacing, print_filename, args.uptime
     )
