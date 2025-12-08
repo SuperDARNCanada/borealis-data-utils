@@ -37,7 +37,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import os
-import deepdish as dd
+import h5py
 
 from pydarnio import BorealisRead
 from multiprocessing import Process
@@ -120,7 +120,7 @@ def plot_unaveraged_range_time_data(data_array, num_sequences_array, timestamps_
     new_power_array = np.transpose(power_array)
 
     kw = {'width_ratios': [95, 5], 'height_ratios': [1, 3]}
-    fig, ((ax1, cax1), (ax2, cax2)) = plt.subplots(2, 2, figsize=figsize, gridspec_kw=kw)
+    fig, ((ax1, cax1), (ax2, cax2)) = plt.subplots(2, 2, figsize=figsize, gridspec_kw=kw, sharex='col')
     fig.suptitle(f'{dataset_descriptor} Raw Power Sequence Time {start_time.strftime("%Y%m%d")} '
                  f'{start_time.strftime("%H:%M:%S")} to {end_time.strftime("%H:%M:%S")} UT vs Range')
 
@@ -138,7 +138,6 @@ def plot_unaveraged_range_time_data(data_array, num_sequences_array, timestamps_
     fig.colorbar(img, cax=cax2, label='Raw Power (dB)')
     cax1.axis('off') 
 
-    ax2.sharex(ax1)
     print(plot_filename)
     plt.savefig(plot_filename)
     plt.close() 
@@ -202,7 +201,7 @@ def plot_antennas_range_time(antennas_iq_file, antenna_nums=None, num_processes=
     if is_site_file:
         arrays, antenna_names, antenna_indices = antennas_iq_site_to_array(antennas_iq_file, antenna_nums)
     else:
-        reader = BorealisRead(antennas_iq_file, 'antennas_iq', 'array')
+        reader = BorealisRead(antennas_iq_file, 'antennas_iq')
         arrays = reader.arrays
 
         (num_records, num_antennas, max_num_sequences, num_samps) = arrays['data'].shape
@@ -458,7 +457,7 @@ def plot_averaged_range_time_data(data_array, timestamps_array, dataset_descript
     end_time = datetime.datetime.utcfromtimestamp(timestamps[-1])
 
     kw = {'width_ratios': [95, 5], 'height_ratios': [1, 3]}
-    fig, ((ax1, cax1), (ax2, cax2)) = plt.subplots(2, 2, figsize=figsize, gridspec_kw=kw)
+    fig, ((ax1, cax1), (ax2, cax2)) = plt.subplots(2, 2, figsize=figsize, gridspec_kw=kw, sharex='col')
     fig.suptitle(f'{dataset_descriptor} PWR Time {start_time.strftime("%Y%m%d")} {start_time.strftime("%H:%M:%S")} to '
                  f'{end_time.strftime("%H:%M:%S")} UT vs Range')
 
@@ -475,7 +474,6 @@ def plot_averaged_range_time_data(data_array, timestamps_array, dataset_descript
     fig.colorbar(img, cax=cax2, label='Raw Power (dB)')
     cax1.axis('off') 
 
-    ax2.get_shared_x_axes().join(ax1, ax2)
     print(plot_filename)
     plt.savefig(plot_filename)
     plt.close() 
@@ -670,17 +668,17 @@ def plot_rawrf_data(rawrf_file, antenna_nums=None, num_processes=3, sequence_num
 
     time_of_plot = '.'.join(basename.split('.')[0:6])
 
-    records = dd.io.load(rawrf_file)
-    record_keys = sorted(list(records.keys()))
+    f = h5py.File(rawrf_file, 'r')
+    record_keys = sorted(list(f.keys()))
 
-    record = records[record_keys[0]]
+    record = f[record_keys[0]]
 
     # This little hack was made to deal with rawrf files afflicted by Issue #258 on the Borealis GitHub, which
     # has since been solved. It should work for all rawrf files regardless.
-    num_sequences, num_antennas, num_samps = record['data_dimensions']
+    num_sequences, num_antennas, num_samps = record.attrs['data_dimensions']
     total_samples = record['data'].size
     sequences_stored = int(total_samples / num_samps / num_antennas)
-    data = record['data'].reshape((sequences_stored, num_antennas, num_samps))
+    data = record['data'][()].reshape((sequences_stored, num_antennas, num_samps))
 
     # typically, antenna names and antenna indices are the same except
     # where certain antennas were skipped in data writing for any reason.
@@ -768,7 +766,7 @@ def plot_iq_data(voltage_samples, timestamps_array, dataset_descriptor, plot_fil
     start_time = datetime.datetime.utcfromtimestamp(timestamps_array[0])
     end_time = datetime.datetime.utcfromtimestamp(timestamps_array[-1])
 
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=figsize)
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=figsize, sharex='col')
     fig.suptitle(f'{dataset_descriptor} Raw Voltage Sequence Time {start_time.strftime("%Y%m%d")} '
                  f'{start_time.strftime("%H:%M:%S")} to {end_time.strftime("%H:%M:%S")} UT')
 
@@ -783,7 +781,6 @@ def plot_iq_data(voltage_samples, timestamps_array, dataset_descriptor, plot_fil
     ax2.plot(np.arange(0, len(voltage_samples[0, :]))/sample_rate*1e6, 10 * np.log10(np.abs(voltage_samples[0, :])))
     ax2.set_ylabel('Power (dB)')
     ax2.set_xlabel('Time (us)')
-    ax2.get_shared_x_axes().join(ax1, ax2)
 
     plot_name = plot_filename_prefix + '_time.jpg'
     print(plot_name)
