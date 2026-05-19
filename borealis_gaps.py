@@ -13,6 +13,7 @@ import os
 
 import h5py
 import pydarnio
+import dmap
 
 
 def get_record_timestamps(filename):
@@ -48,7 +49,7 @@ def get_record_timestamps(filename):
                         )
                     )
     else:
-        recs = pydarnio.read_dmap(filename, mode="strict")
+        recs = dmap.read_rawacf(filename, mode="metadata")
         sqn_timestamps = []
         for r in recs:
             tstamp = datetime.datetime(
@@ -89,6 +90,26 @@ def check_for_gaps(timestamp_list, gap_spacing):
         if (t1 - t0).total_seconds() > gap_spacing
     ]
     return gaps
+
+
+def convert_to_uptime(gaps, start_time, end_time):
+    """
+    Converts the gaps to operational durations.
+    """
+    if len(gaps) == 0:
+        return [(start_time, end_time)]
+
+    uptimes = []
+    if gaps[0][0] != start_time:  # downtime started at beginning of period
+        uptimes.append((start_time, gaps[0][0]))
+
+    for i in range(1, len(gaps)):  # fill in gaps between downtimes
+        uptimes.append((gaps[i-1][1], gaps[i][0]))
+
+    if gaps[-1][1] != end_time:  # downtime lasted until end of period
+        uptimes.append((gaps[-1][1], end_time))
+    
+    return uptimes
 
 
 def print_gaps(gaps, first_timestamp, last_timestamp, gap_spacing, print_filename, uptime=False):
@@ -290,10 +311,7 @@ if __name__ == "__main__":
 
     gaps = check_for_gaps(all_timestamps, args.gap_spacing)
     if args.uptime:
-        non_gaps = []
-        for i in range(1, len(gaps)):
-            non_gaps.append((gaps[i-1][1], gaps[i][0]))
-        gaps = non_gaps
+        gaps = convert_to_uptime(gaps, start_day, end_day + datetime.timedelta(hours=23, minutes=59, seconds=59))
 
     print_gaps(
         gaps, all_timestamps[0], all_timestamps[-1], args.gap_spacing, print_filename, args.uptime
